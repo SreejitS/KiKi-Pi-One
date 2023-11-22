@@ -1,0 +1,87 @@
+<mxfile host="Electron" modified="2023-11-18T11:24:35.561Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/21.7.5 Chrome/114.0.5735.289 Electron/25.8.1 Safari/537.36" etag="6A6pqVRKjxbkGioJf2fl" version="21.7.5" type="device">
+  <diagram name="Plan" id="ZI6sQ-y3-FxdUofkZqVl">
+    <mxGraphModel dx="1647" dy="1127" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="XVcaK5Tp2GgTBr4o56Rb-1" value="&lt;font style=&quot;font-size: 36px;&quot;&gt;&lt;u&gt;KiKi-Pi-I&lt;/u&gt;&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="250" width="260" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="XVcaK5Tp2GgTBr4o56Rb-3" value="Medium Articles" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="840" y="500" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="XVcaK5Tp2GgTBr4o56Rb-4" value="Architecture Design" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="170" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="XVcaK5Tp2GgTBr4o56Rb-5" value="Project Aim" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="80" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="XVcaK5Tp2GgTBr4o56Rb-6" value="&lt;h1&gt;Project Aim&lt;/h1&gt;&lt;p&gt;To design and build a 16-bit computer, from grounds up, with the following compnents&lt;/p&gt;&lt;p&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;Hardware - PCB&lt;/li&gt;&lt;ul&gt;&lt;li&gt;Custom Designed CPU&lt;/li&gt;&lt;li&gt;Keyboard Input&lt;/li&gt;&lt;li&gt;Screen&lt;/li&gt;&lt;/ul&gt;&lt;li&gt;&amp;nbsp;Software&lt;/li&gt;&lt;ul&gt;&lt;li&gt;Assembler&lt;/li&gt;&lt;li&gt;Compiler&lt;/li&gt;&lt;li&gt;VM&lt;/li&gt;&lt;li&gt;Higher Level Language&lt;/li&gt;&lt;li&gt;GPT generated programs from all the documentations&lt;/li&gt;&lt;/ul&gt;&lt;/ul&gt;&lt;p&gt;&lt;/p&gt;" style="text;html=1;strokeColor=default;fillColor=none;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="480" y="130" width="510" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="XVcaK5Tp2GgTBr4o56Rb-7" value="Source Control" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="840" y="580" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="XVcaK5Tp2GgTBr4o56Rb-11" value="ALU" style="shape=umlFrame;whiteSpace=wrap;html=1;pointerEvents=0;" vertex="1" parent="1">
+          <mxGeometry x="-210" y="640" width="300" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="XVcaK5Tp2GgTBr4o56Rb-21" value="" style="group" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="280" y="800" width="300" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="XVcaK5Tp2GgTBr4o56Rb-12" value="Memory" style="shape=umlFrame;whiteSpace=wrap;html=1;pointerEvents=0;" vertex="1" parent="XVcaK5Tp2GgTBr4o56Rb-21">
+          <mxGeometry width="300" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="XVcaK5Tp2GgTBr4o56Rb-13" value="Registers" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="XVcaK5Tp2GgTBr4o56Rb-21">
+          <mxGeometry x="100" y="40" width="70" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="XVcaK5Tp2GgTBr4o56Rb-14" value="RAM" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="XVcaK5Tp2GgTBr4o56Rb-21">
+          <mxGeometry x="60" y="100" width="50" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="XVcaK5Tp2GgTBr4o56Rb-15" value="ROM" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="XVcaK5Tp2GgTBr4o56Rb-21">
+          <mxGeometry x="140" y="90" width="50" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="XVcaK5Tp2GgTBr4o56Rb-24" value="" style="group" vertex="1" connectable="0" parent="1">
+          <mxGeometry x="-240" y="1060" width="300" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="XVcaK5Tp2GgTBr4o56Rb-20" value="IO" style="shape=umlFrame;whiteSpace=wrap;html=1;pointerEvents=0;" vertex="1" parent="XVcaK5Tp2GgTBr4o56Rb-24">
+          <mxGeometry width="300" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="XVcaK5Tp2GgTBr4o56Rb-22" value="Keyboard" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="XVcaK5Tp2GgTBr4o56Rb-24">
+          <mxGeometry x="55" y="58" width="70" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="XVcaK5Tp2GgTBr4o56Rb-23" value="Screen" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="XVcaK5Tp2GgTBr4o56Rb-24">
+          <mxGeometry x="170" y="100" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="XVcaK5Tp2GgTBr4o56Rb-27" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="XVcaK5Tp2GgTBr4o56Rb-25" target="XVcaK5Tp2GgTBr4o56Rb-26">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="XVcaK5Tp2GgTBr4o56Rb-25" value="ROM" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="1520" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="XVcaK5Tp2GgTBr4o56Rb-34" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0;entryY=0.25;entryDx=0;entryDy=0;" edge="1" parent="1" source="XVcaK5Tp2GgTBr4o56Rb-26" target="XVcaK5Tp2GgTBr4o56Rb-28">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="XVcaK5Tp2GgTBr4o56Rb-40" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="XVcaK5Tp2GgTBr4o56Rb-26" target="XVcaK5Tp2GgTBr4o56Rb-30">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="XVcaK5Tp2GgTBr4o56Rb-26" value="CPU" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="480" y="1520" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="XVcaK5Tp2GgTBr4o56Rb-33" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.75;exitDx=0;exitDy=0;entryX=1;entryY=0.75;entryDx=0;entryDy=0;" edge="1" parent="1" source="XVcaK5Tp2GgTBr4o56Rb-28" target="XVcaK5Tp2GgTBr4o56Rb-26">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="XVcaK5Tp2GgTBr4o56Rb-28" value="RAM" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="660" y="1520" width="100" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="XVcaK5Tp2GgTBr4o56Rb-39" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="XVcaK5Tp2GgTBr4o56Rb-30">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="350" y="1590" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="XVcaK5Tp2GgTBr4o56Rb-30" value="Program Counter" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="390" y="1640" width="100" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
