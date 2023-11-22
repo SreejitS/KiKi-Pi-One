@@ -38,7 +38,7 @@ In this project, we have designed a 16-bit CPU architecture, taking into conside
 
 Before running the simulation, make sure you have the following installed:
 
-- Logisim Evolution v3.8.0: [Download Logisim Evolution](https://github.com/logisim-evolution/logisim-evolution/releases)
+- Logisim Evolution v3.8.0: [Download Logisim Evolution](https://github.com/logisim-evolution/logisim-evolution/releases/tag/v3.8.0)
 
 
 ### Installation
@@ -46,21 +46,21 @@ Before running the simulation, make sure you have the following installed:
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/your-username/16-bit-cpu-simulation.git
+   git clone https://github.com/SreejitS/KiKi-Pi-One.git
    ```
 
 2. Open Logisim and load the CPU circuit file:
 
    ```
-   Logisim-Evolution/KiKi_Pi_One.circ
+   /Logisim-Evolution/KiKi_Pi_One.circ
    ```
 
 ## Project Structure
 
 The project is organized as follows:
 
-- `KiKi_Pi_One.circ`: Logisim circuit file for the 16-bit CPU.
-- `Docs/`: Documentation for the projecs
+- `Logisim-Evolution/KiKi_Pi_One.circ`: Logisim circuit file for the 16-bit CPU.
+- `Docs/`: Documentation for the projecs, use [draw.io](draw.io) to view the system diagram.
 
 ## Simulation
 
@@ -84,6 +84,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Acknowledgments
 
+- 100% credit goes to [Nand2Tetris](https://www.coursera.org/learn/build-a-computer)
 - The project was inspired by the desire to create a hands-on learning experience for computer architecture enthusiasts.
 - Special thanks to the Logisim development team for providing a powerful simulation tool.
 - Check out our [Medium article](https://medium.com/@iamsreejits/project-kickoff-kiki-pi-one-521664ec1b6d) for a detailed walkthrough of the project.
