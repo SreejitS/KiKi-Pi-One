@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
   ALUInputs,
-  ALUOutput,
   computeALU,
   ALU_OPS,
   matchOpName,
@@ -14,81 +13,40 @@ import {
   toggleBit,
 } from "@/lib/alu";
 
-const MAX_HISTORY = 8;
-
-interface HistoryRecord {
-  id: number;
-  op: string;
-  x: number;
-  y: number;
-  out: number;
-  zr: 0 | 1;
-  ng: 0 | 1;
-}
-
 const CTRL_BITS = ["zx", "nx", "zy", "ny", "f", "no"] as const;
 type CtrlBit = (typeof CTRL_BITS)[number];
+
+type CtrlState = Record<CtrlBit, 0 | 1>;
+
+const DEFAULT_CTRL: CtrlState = { zx: 0, nx: 0, zy: 0, ny: 0, f: 1, no: 0 };
 
 export default function ALUPage() {
   const [xVal, setXVal] = useState(0);
   const [yVal, setYVal] = useState(0);
-  const [ctrl, setCtrl] = useState<Record<CtrlBit, 0 | 1>>({
-    zx: 0, nx: 0, zy: 0, ny: 0, f: 1, no: 0,
-  });
-  const [history, setHistory] = useState<HistoryRecord[]>([]);
-  const [captureId, setCaptureId] = useState(0);
+  const [ctrl, setCtrl] = useState<CtrlState>(DEFAULT_CTRL);
 
-  // Derive output live (combinational - no clock needed)
   const inputs: ALUInputs = { x: xVal, y: yVal, ...ctrl };
-  const output: ALUOutput = computeALU(inputs);
+  const output = computeALU(inputs);
   const opName = matchOpName(ctrl);
 
-  const handleSelectOp = useCallback((name: string) => {
+  const handleSelectOp = (name: string) => {
     const op = ALU_OPS.find((o) => o.name === name);
-    if (op) {
-      setCtrl({
-        zx: op.zx as 0 | 1,
-        nx: op.nx as 0 | 1,
-        zy: op.zy as 0 | 1,
-        ny: op.ny as 0 | 1,
-        f:  op.f  as 0 | 1,
-        no: op.no as 0 | 1,
-      });
-    }
-  }, []);
+    if (op) setCtrl({ zx: op.zx as 0|1, nx: op.nx as 0|1, zy: op.zy as 0|1, ny: op.ny as 0|1, f: op.f as 0|1, no: op.no as 0|1 });
+  };
 
-  const handleToggleCtrl = useCallback((bit: CtrlBit) => {
+  const handleToggleCtrl = (bit: CtrlBit) => {
     setCtrl((prev) => ({ ...prev, [bit]: prev[bit] === 0 ? 1 : 0 }));
-  }, []);
-
-  const handleCapture = useCallback(() => {
-    const record: HistoryRecord = {
-      id: captureId + 1,
-      op: opName,
-      x: xVal,
-      y: yVal,
-      out: output.out,
-      zr: output.zr,
-      ng: output.ng,
-    };
-    setHistory((prev) => [record, ...prev].slice(0, MAX_HISTORY));
-    setCaptureId((n) => n + 1);
-  }, [captureId, opName, xVal, yVal, output]);
+  };
 
   const handleReset = () => {
     setXVal(0);
     setYVal(0);
-    setCtrl({ zx: 0, nx: 0, zy: 0, ny: 0, f: 1, no: 0 });
-    setHistory([]);
-    setCaptureId(0);
+    setCtrl(DEFAULT_CTRL);
   };
-
-  const xBits = toBinary16(xVal);
-  const yBits = toBinary16(yVal);
-  const outBits = toBinary16(output.out);
 
   return (
     <div className="space-y-8">
+
       {/* Header */}
       <div>
         <div className="text-sm text-slate-500 mb-1">
@@ -98,174 +56,140 @@ export default function ALUPage() {
         </div>
         <h1 className="text-2xl font-bold text-emerald-400">ALU</h1>
         <p className="text-slate-400 text-sm mt-1">
-          A 16-bit combinational ALU. Set x, y, and an operation — output updates instantly.
-        </p>
-        <p className="text-xs text-slate-600 mt-1 font-mono">
-          always_comb: 6 control bits, 28 operations
+          Arithmetic Logic Unit. Set x and y, pick an operation, see the result instantly.
         </p>
       </div>
 
       {/* Operation selector */}
       <div className="space-y-3">
-        <SectionLabel>Operation</SectionLabel>
-        <div className="flex flex-wrap gap-1.5">
-          {ALU_OPS.map((op) => (
-            <button
-              key={op.name}
-              onClick={() => handleSelectOp(op.name)}
-              className={`
-                px-2.5 py-1 rounded text-xs font-mono transition-colors
-                ${opName === op.name
-                  ? "bg-emerald-600 text-white"
-                  : "bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200"}
-              `}
-            >
-              {op.name}
-            </button>
-          ))}
-          {opName === "custom" && (
-            <span className="px-2.5 py-1 rounded text-xs font-mono bg-amber-900/50 text-amber-400 border border-amber-800">
-              custom
-            </span>
-          )}
-        </div>
+        <Label>Operation</Label>
+        <div className="flex items-center gap-3 flex-wrap">
+          <select
+            value={opName === "custom" ? "" : opName}
+            onChange={(e) => handleSelectOp(e.target.value)}
+            className="bg-slate-800 text-emerald-400 font-mono text-sm px-3 py-2 rounded-lg border border-slate-700 focus:outline-none focus:border-emerald-600 cursor-pointer"
+          >
+            {opName === "custom" && <option value="">custom</option>}
+            <optgroup label="Constants">
+              {["0","1","-1"].map(n => <option key={n} value={n}>{n}</option>)}
+            </optgroup>
+            <optgroup label="Pass-through">
+              {["D","A","M"].map(n => <option key={n} value={n}>{n}</option>)}
+            </optgroup>
+            <optgroup label="NOT / Negate">
+              {["!D","!A","!M","-D","-A","-M"].map(n => <option key={n} value={n}>{n}</option>)}
+            </optgroup>
+            <optgroup label="Increment / Decrement">
+              {["D+1","A+1","M+1","D-1","A-1","M-1"].map(n => <option key={n} value={n}>{n}</option>)}
+            </optgroup>
+            <optgroup label="Add / Subtract">
+              {["D+A","D+M","D-A","D-M","A-D","M-D"].map(n => <option key={n} value={n}>{n}</option>)}
+            </optgroup>
+            <optgroup label="Bitwise">
+              {["D&A","D&M","D|A","D|M"].map(n => <option key={n} value={n}>{n}</option>)}
+            </optgroup>
+          </select>
 
-        {/* Control bits */}
-        <div className="flex gap-2 items-center flex-wrap">
-          <span className="text-xs text-slate-600 font-mono w-10">bits:</span>
-          {CTRL_BITS.map((bit) => (
-            <button
-              key={bit}
-              onClick={() => handleToggleCtrl(bit)}
-              className={`
-                flex flex-col items-center px-2 py-1 rounded text-xs font-mono transition-colors
-                ${ctrl[bit] === 1
-                  ? "bg-emerald-700 text-emerald-100"
-                  : "bg-slate-800 text-slate-500 hover:bg-slate-700"}
-              `}
-            >
-              <span className="text-[10px] text-slate-500">{bit}</span>
-              <span className="font-bold">{ctrl[bit]}</span>
-            </button>
-          ))}
+          {/* Control bits read-out */}
+          <div className="flex items-center gap-1">
+            {CTRL_BITS.map((bit) => (
+              <button
+                key={bit}
+                onClick={() => handleToggleCtrl(bit)}
+                title={`Toggle ${bit}`}
+                className={`flex flex-col items-center w-9 py-1 rounded text-xs font-mono transition-colors border
+                  ${ctrl[bit] === 1
+                    ? "bg-emerald-900/60 border-emerald-700 text-emerald-300"
+                    : "bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-600"
+                  }`}
+              >
+                <span className="text-[9px] text-slate-600">{bit}</span>
+                <span className="font-bold text-sm">{ctrl[bit]}</span>
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={handleReset}
+            className="ml-auto text-xs font-mono text-slate-600 hover:text-slate-400 px-2 py-1"
+          >
+            Reset
+          </button>
         </div>
       </div>
 
-      {/* Main grid: X, Y, Output */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* X input */}
-        <div className="space-y-3">
-          <SectionLabel>Input X (D register)</SectionLabel>
-          <BitGrid
-            bits={xBits}
-            onToggle={(i) => setXVal((v) => toggleBit(v, i))}
-            highlightMask={0}
-            interactive
+      {/* Main diagram: inputs → ALU → output */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-4 items-center">
+
+        {/* Inputs: X stacked above Y */}
+        <div className="space-y-4">
+          <InputPanel
+            label="x"
+            sublabel="D register"
+            value={xVal}
+            onChange={setXVal}
           />
-          <ValueDisplay value={xVal} label="x" />
+          <InputPanel
+            label="y"
+            sublabel="A / M"
+            value={yVal}
+            onChange={setYVal}
+          />
         </div>
 
-        {/* Y input */}
-        <div className="space-y-3">
-          <SectionLabel>Input Y (A / M)</SectionLabel>
-          <BitGrid
-            bits={yBits}
-            onToggle={(i) => setYVal((v) => toggleBit(v, i))}
-            highlightMask={0}
-            interactive
-          />
-          <ValueDisplay value={yVal} label="y" />
+        {/* Center arrow + op label */}
+        <div className="hidden lg:flex flex-row items-center gap-2 px-2 whitespace-nowrap">
+          <span className="text-xs font-mono text-slate-500">{opName}</span>
+          <span className="text-2xl text-slate-600">→</span>
         </div>
 
         {/* Output */}
-        <div className="space-y-3">
-          <SectionLabel>Output</SectionLabel>
-          <BitGrid
-            bits={outBits}
-            onToggle={() => {}}
-            highlightMask={0}
-            interactive={false}
-          />
-          <ValueDisplay value={output.out} label="out" />
+        <div className="border border-slate-700 rounded-xl p-4 space-y-4 bg-slate-900/40">
+          <Label>out</Label>
+
+          <div className="space-y-1">
+            <BitGrid
+              bits={toBinary16(output.out)}
+              interactive={false}
+              onToggle={() => {}}
+            />
+            <div className="flex gap-4 text-sm font-mono text-slate-400">
+              <span>
+                <span className="text-slate-600">hex: </span>
+                <span className="text-slate-200 font-semibold">{toHex16(output.out)}</span>
+              </span>
+              <span>
+                <span className="text-slate-600">dec: </span>
+                <span className="text-slate-200">{toSigned16(output.out)}</span>
+              </span>
+            </div>
+          </div>
 
           {/* Flags */}
-          <div className="flex gap-3 pt-1">
-            <FlagBadge label="ZR" value={output.zr} description="zero" />
-            <FlagBadge label="NG" value={output.ng} description="negative" />
+          <div className="border-t border-slate-800 pt-3 flex gap-3">
+            <Flag label="ZR" value={output.zr} onColor="emerald" description="out = 0" />
+            <Flag label="NG" value={output.ng} onColor="red"     description="out < 0" />
           </div>
         </div>
       </div>
 
-      {/* Controls */}
-      <div className="flex gap-3 pt-2">
-        <button
-          onClick={handleCapture}
-          className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-mono text-sm rounded-lg transition-colors font-semibold"
-        >
-          + Capture
-        </button>
-        <button
-          onClick={handleReset}
-          className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-400 font-mono text-sm rounded-lg transition-colors"
-        >
-          Reset
-        </button>
-      </div>
-
-      {/* Capture history */}
-      {history.length > 0 && (
-        <div>
-          <SectionLabel>Captured States</SectionLabel>
-          <div className="mt-2 border border-slate-800 rounded-lg overflow-hidden">
-            <table className="w-full text-xs font-mono">
-              <thead>
-                <tr className="border-b border-slate-800 text-slate-500">
-                  <th className="text-left px-3 py-2">#</th>
-                  <th className="text-left px-3 py-2">op</th>
-                  <th className="text-left px-3 py-2">x</th>
-                  <th className="text-left px-3 py-2">y</th>
-                  <th className="text-left px-3 py-2">out</th>
-                  <th className="text-left px-3 py-2">zr</th>
-                  <th className="text-left px-3 py-2">ng</th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.map((r, i) => (
-                  <tr
-                    key={r.id}
-                    className={`border-b border-slate-800/50 ${i === 0 ? "bg-slate-800/40" : ""}`}
-                  >
-                    <td className="px-3 py-1.5 text-slate-600">{r.id}</td>
-                    <td className="px-3 py-1.5 text-emerald-400">{r.op}</td>
-                    <td className="px-3 py-1.5 text-slate-300">{toHex16(r.x)}</td>
-                    <td className="px-3 py-1.5 text-slate-300">{toHex16(r.y)}</td>
-                    <td className="px-3 py-1.5 text-slate-200 font-semibold">{toHex16(r.out)}</td>
-                    <td className={`px-3 py-1.5 ${r.zr ? "text-emerald-400" : "text-slate-600"}`}>{r.zr}</td>
-                    <td className={`px-3 py-1.5 ${r.ng ? "text-red-400" : "text-slate-600"}`}>{r.ng}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Explainer */}
-      <div className="bg-slate-800/40 border border-slate-800 rounded-lg p-4 text-sm space-y-2">
-        <p className="text-slate-400 font-semibold mb-2">How it works</p>
-        <p className="text-slate-500">
-          The 6 control bits apply successive transformations to x and y before computing.
-          zx/zy zero an input. nx/ny negate it. f selects add or AND. no negates the output.
-        </p>
-        <p className="text-slate-500">
-          <span className="text-slate-300">ZR</span> lights up when the result is exactly zero.
-          {" "}
-          <span className="text-slate-300">NG</span> lights up when bit 15 is 1 (negative in two&apos;s complement).
-          These flags drive the conditional jump logic in the CPU.
-        </p>
-        <p className="text-xs text-slate-600 mt-2 font-mono">
-          SystemVerilog: always_comb &#123; px = zx ? 0 : x; ... &#125;
-        </p>
+      {/* Computation summary */}
+      <div className="bg-slate-800/40 border border-slate-800 rounded-lg px-4 py-3 font-mono text-sm">
+        <span className="text-slate-500">x=</span>
+        <span className="text-slate-300">{toSigned16(xVal)}</span>
+        <span className="text-slate-600 mx-2">|</span>
+        <span className="text-slate-500">y=</span>
+        <span className="text-slate-300">{toSigned16(yVal)}</span>
+        <span className="text-slate-600 mx-2">|</span>
+        <span className="text-slate-500">op=</span>
+        <span className="text-emerald-400">{opName}</span>
+        <span className="text-slate-600 mx-2">|</span>
+        <span className="text-slate-500">out=</span>
+        <span className="text-slate-200 font-semibold">{toSigned16(output.out)}</span>
+        <span className="text-slate-600 mx-2">|</span>
+        <span className={output.zr ? "text-emerald-400" : "text-slate-600"}>ZR={output.zr}</span>
+        <span className="text-slate-600 mx-1" />
+        <span className={output.ng ? "text-red-400" : "text-slate-600"}>NG={output.ng}</span>
       </div>
 
       {/* Links */}
@@ -291,65 +215,90 @@ export default function ALUPage() {
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function Label({ children }: { children: React.ReactNode }) {
   return (
     <p className="text-xs text-slate-500 uppercase tracking-wider font-semibold">{children}</p>
   );
 }
 
-function ValueDisplay({ value, label }: { value: number; label: string }) {
+function InputPanel({
+  label,
+  sublabel,
+  value,
+  onChange,
+}: {
+  label: string;
+  sublabel: string;
+  value: number;
+  onChange: (v: number) => void;
+}) {
   return (
-    <div className="flex gap-4 text-sm font-mono text-slate-400">
-      <span>
-        <span className="text-slate-600">{label} hex: </span>
-        <span className="text-slate-200">{toHex16(value)}</span>
-      </span>
-      <span>
-        <span className="text-slate-600">dec: </span>
-        <span className="text-slate-200">{toSigned16(value)}</span>
-      </span>
+    <div className="border border-slate-800 rounded-xl p-4 space-y-3">
+      <div className="flex items-baseline gap-2">
+        <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">{label}</span>
+        <span className="text-xs text-slate-700 font-mono">{sublabel}</span>
+      </div>
+      <BitGrid
+        bits={toBinary16(value)}
+        interactive
+        onToggle={(i) => onChange(toggleBit(value, i))}
+      />
+      <div className="flex gap-4 text-sm font-mono text-slate-400">
+        <span>
+          <span className="text-slate-600">hex: </span>
+          <span className="text-slate-200">{toHex16(value)}</span>
+        </span>
+        <span>
+          <span className="text-slate-600">dec: </span>
+          <span className="text-slate-200">{toSigned16(value)}</span>
+        </span>
+      </div>
     </div>
   );
 }
 
-function FlagBadge({
+function Flag({
   label,
   value,
+  onColor,
   description,
 }: {
   label: string;
   value: 0 | 1;
+  onColor: "emerald" | "red";
   description: string;
 }) {
+  const active = value === 1;
+  const colors = {
+    emerald: active
+      ? "bg-emerald-900/40 border-emerald-700 text-emerald-300"
+      : "bg-slate-800/60 border-slate-700 text-slate-600",
+    red: active
+      ? "bg-red-900/40 border-red-800 text-red-400"
+      : "bg-slate-800/60 border-slate-700 text-slate-600",
+  };
+  const dotColor = {
+    emerald: active ? "bg-emerald-400" : "bg-slate-700",
+    red:     active ? "bg-red-400"     : "bg-slate-700",
+  };
+
   return (
-    <div
-      className={`
-        flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold border
-        ${value === 1
-          ? label === "ZR"
-            ? "bg-emerald-900/40 border-emerald-700 text-emerald-400"
-            : "bg-red-900/40 border-red-800 text-red-400"
-          : "bg-slate-800/60 border-slate-700 text-slate-600"
-        }
-      `}
-    >
-      <span className={`w-2 h-2 rounded-full ${value === 1 ? (label === "ZR" ? "bg-emerald-400" : "bg-red-400") : "bg-slate-600"}`} />
-      {label}
-      <span className="font-normal text-[10px] opacity-70">= {value} ({description})</span>
+    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-mono font-bold flex-1 ${colors[onColor]}`}>
+      <span className={`w-2 h-2 rounded-full ${dotColor[onColor]}`} />
+      <span>{label}</span>
+      <span className="font-normal opacity-60 ml-auto">{description}</span>
     </div>
   );
 }
 
 function BitGrid({
   bits,
-  onToggle,
-  highlightMask,
   interactive,
+  onToggle,
 }: {
   bits: string;
-  onToggle: (i: number) => void;
-  highlightMask: number;
   interactive: boolean;
+  onToggle: (i: number) => void;
 }) {
   return (
     <div className="space-y-1">
@@ -357,8 +306,8 @@ function BitGrid({
         {Array.from({ length: 16 }, (_, i) => {
           const bitIndex = 15 - i;
           return (
-            <div key={bitIndex} className="w-7 text-center text-[9px] text-slate-700 font-mono">
-              {bitIndex}
+            <div key={bitIndex} className="w-6 text-center text-[8px] text-slate-700 font-mono">
+              {bitIndex % 4 === 0 || bitIndex === 0 ? bitIndex : ""}
             </div>
           );
         })}
@@ -367,21 +316,16 @@ function BitGrid({
         {Array.from({ length: 16 }, (_, i) => {
           const bitIndex = 15 - i;
           const isOne = bits[i] === "1";
-          const isHighlighted = !!(highlightMask & (1 << bitIndex));
           return (
             <button
               key={bitIndex}
               onClick={() => interactive && onToggle(bitIndex)}
               disabled={!interactive}
               className={`
-                w-7 h-8 rounded text-sm font-mono font-bold transition-all
+                w-6 h-7 rounded text-xs font-mono font-bold transition-all
                 ${isOne
-                  ? isHighlighted
-                    ? "bg-emerald-400 text-slate-900"
-                    : "bg-emerald-700 text-emerald-100"
-                  : isHighlighted
-                    ? "bg-red-900/60 text-red-300 border border-red-700"
-                    : "bg-slate-800 text-slate-500"
+                  ? "bg-emerald-700 text-emerald-100"
+                  : "bg-slate-800 text-slate-600"
                 }
                 ${interactive ? "cursor-pointer hover:opacity-80 active:scale-95" : "cursor-default"}
               `}
@@ -390,11 +334,6 @@ function BitGrid({
             </button>
           );
         })}
-      </div>
-      <div className="flex text-[9px] text-slate-700 font-mono">
-        <span className="w-7 text-center">MSB</span>
-        <span className="flex-1" />
-        <span className="w-7 text-center">LSB</span>
       </div>
     </div>
   );
