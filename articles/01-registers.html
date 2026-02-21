@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Part 1: The Register - Building KiKi-Pi-One's Memory Cells</title></head>
+<body>
+<div id="kiki-article">
+<style>
+  /* ID selector (#) beats any class-based theme rule */
+
+  /* ── Layout ── */
+  #kiki-article {
+    font-family: inherit !important;
+    line-height: 1.75 !important;
+    color: inherit !important;
+  }
+  /* ── Headings ── */
+  #kiki-article h2 {
+    font-size: 1.5em !important;
+    font-weight: 700 !important;
+    margin: 2.5rem 0 1rem !important;
+    color: inherit !important;
+    line-height: 1.2 !important;
+  }
+  #kiki-article h3 {
+    font-size: 1.2em !important;
+    font-weight: 600 !important;
+    margin: 2rem 0 0.75rem !important;
+    color: inherit !important;
+    line-height: 1.3 !important;
+  }
+  #kiki-article p {
+    margin: 1rem 0 !important;
+  }
+  /* ── Links ── */
+  #kiki-article a {
+    color: #4338ca !important;
+    text-decoration: underline !important;
+    text-underline-offset: 2px !important;
+  }
+  #kiki-article a:hover {
+    color: #3730a3 !important;
+  }
+  /* ── Horizontal rule ── */
+  #kiki-article hr {
+    border: none !important;
+    border-top: 1px solid #999 !important;
+    margin: 2.5rem auto !important;
+    max-width: 80% !important;
+  }
+  /* ── Blockquotes ── */
+  #kiki-article blockquote {
+    border-left: 3px solid #4338ca !important;
+    margin: 1.5rem 0 !important;
+    padding: 0.5rem 0 0.5rem 1.25rem !important;
+    color: #333 !important;
+    font-style: italic !important;
+  }
+  #kiki-article blockquote p {
+    margin: 0.5rem 0 !important;
+  }
+  /* ── Lists ── */
+  #kiki-article ol, #kiki-article ul {
+    margin: 1rem 0 !important;
+    padding-left: 1.75rem !important;
+  }
+  #kiki-article li {
+    margin: 0.4rem 0 !important;
+  }
+  /* ── Tables ── */
+  #kiki-article table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin: 1.5rem 0 !important;
+    font-size: 0.92em !important;
+    background: #fff !important;
+    border-radius: 6px !important;
+    overflow: hidden !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12) !important;
+  }
+  #kiki-article th {
+    background: #f0f0f0 !important;
+    font-weight: 600 !important;
+    text-align: left !important;
+    padding: 10px 14px !important;
+    border: 1px solid #ddd !important;
+    color: #000 !important;
+  }
+  #kiki-article td {
+    padding: 9px 14px !important;
+    border: 1px solid #ddd !important;
+    text-align: left !important;
+    color: #000 !important;
+  }
+  #kiki-article tbody tr:nth-child(even) {
+    background: #f7f7f7 !important;
+  }
+  /* ── Code blocks ── */
+  #kiki-article pre {
+    background: #272822 !important;
+    color: #f8f8f2 !important;
+    padding: 1.25rem !important;
+    border-radius: 8px !important;
+    overflow-x: auto !important;
+    margin: 1.5rem 0 !important;
+    font-size: 0.88em !important;
+    line-height: 1.6 !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace !important;
+    -webkit-font-smoothing: antialiased !important;
+    white-space: pre !important;
+    word-wrap: normal !important;
+    letter-spacing: 0 !important;
+    word-spacing: 0 !important;
+  }
+  #kiki-article pre code {
+    background: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    color: inherit !important;
+    font-family: inherit !important;
+    font-size: inherit !important;
+    white-space: pre !important;
+    word-wrap: normal !important;
+    letter-spacing: 0 !important;
+  }
+  /* ── Inline code ── */
+  #kiki-article p code,
+  #kiki-article li code,
+  #kiki-article td code,
+  #kiki-article h2 code,
+  #kiki-article h3 code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace !important;
+    background: #e0e0e0 !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+    font-size: 0.9em !important;
+    color: #000 !important;
+  }
+  #kiki-article strong {
+    font-weight: 700 !important;
+    color: inherit !important;
+  }
+  /* ── Images ── */
+  #kiki-article img {
+    max-width: 100% !important;
+    height: auto !important;
+    border-radius: 6px !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+    margin: 1rem 0 !important;
+  }
+</style>
+<p><em>This is Part 1 of the KiKi-Pi-One series, where we build a 16-bit CPU from scratch.</em>
+<em><a href="./00-isa-spec.md">&lt;- Part 0: The ISA</a> | <a href="https://github.com/SreejitS/KiKi-Pi-One">GitHub</a> | <a href="https://kiki-pi-one.vercel.app/registers">Live Demo</a></em></p>
+<p>Every CPU needs memory. Not the gigabytes-of-RAM kind. The tiny, fast storage sitting right inside the processor. The kind that holds a single value and can update it in one clock cycle. That is a <strong>register</strong>. In KiKi-Pi-One, the CPU has two registers - <strong>A</strong> and <strong>D</strong> - and they are both instances of the same simple module we are building today.</p>
+<h2 id="the-interface">The Interface</h2>
+<p>A register is a <strong>D flip-flop</strong> scaled to 16 bits. A D flip-flop is a memory element with a simple contract: on every rising clock edge, if the load signal is 1, capture the input. Otherwise, keep the current value.</p>
+<pre><code>     +-------------------------+
+  in |16                       | 16
+----&gt;|         register        |----&gt; out
+     |                         |
+load |                         |
+----&gt;|                         |
+     |                         |
+ clk |                         |
+----&gt;|                         |
+     +-------------------------+
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Port</th>
+<th>Width</th>
+<th>Direction</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>clk</code></td>
+<td>1</td>
+<td>Input</td>
+<td>Clock - rising-edge triggered</td>
+</tr>
+<tr>
+<td><code>load</code></td>
+<td>1</td>
+<td>Input</td>
+<td>Write enable - 1 to latch <code>in</code>, 0 to hold</td>
+</tr>
+<tr>
+<td><code>in</code></td>
+<td>16</td>
+<td>Input</td>
+<td>Data to store</td>
+</tr>
+<tr>
+<td><code>out</code></td>
+<td>16</td>
+<td>Output</td>
+<td>Currently stored value</td>
+</tr>
+</tbody>
+</table>
+<h2 id="timing-diagram">Timing Diagram</h2>
+<p>The output does not change <em>when</em> you set <code>load = 1</code>. It changes on the <strong>next rising clock edge</strong>. This edge-triggered behaviour is what makes digital design predictable. All registers in the system update simultaneously on the clock edge, eliminating race conditions.</p>
+<pre><code>        +--+  +--+  +--+  +--+  +--+
+clk  ---+  +--+  +--+  +--+  +--+  +-
+         ^     ^     ^     ^     ^
+load  ----------------+     +--------
+                      +-----+
+
+in    ---- DEAD ------+ABCD +--- FFFF
+out   ---- 0000 ------+-----+ABCD ---
+                              ^
+                         latches here
+</code></pre>
+<pre><code>// WaveDrom - paste at wavedrom.com to render
+{ &quot;signal&quot;: [
+  { &quot;name&quot;: &quot;clk&quot;,  &quot;wave&quot;: &quot;p.....&quot;,  &quot;period&quot;: 2 },
+  { &quot;name&quot;: &quot;load&quot;, &quot;wave&quot;: &quot;0.1.0.&quot; },
+  { &quot;name&quot;: &quot;in&quot;,   &quot;wave&quot;: &quot;x.=.x.&quot;, &quot;data&quot;: [&quot;0xABCD&quot;] },
+  { &quot;name&quot;: &quot;out&quot;,  &quot;wave&quot;: &quot;x...=.&quot;, &quot;data&quot;: [&quot;0xABCD&quot;] }
+]}
+</code></pre>
+<p>Cycle by cycle: <code>load</code> goes high with <code>in = 0xABCD</code>. On the next rising edge, <code>out</code> latches to <code>0xABCD</code>. When <code>load</code> drops back to 0, the register holds that value regardless of what appears on <code>in</code>.</p>
+<h2 id="implementation">Implementation</h2>
+<p>Here is the complete SystemVerilog. If you need more than a few lines to implement a register, something is wrong.</p>
+<pre><code>// register.sv
+`timescale 1ns/1ps
+
+module register (
+    input  logic        clk,
+    input  logic        load,
+    input  logic [15:0] in,
+    output logic [15:0] out
+);
+    always_ff @(posedge clk) begin
+        if (load)
+            out &lt;= in;
+    end
+
+    initial out = 16'h0000;
+endmodule
+</code></pre>
+<h3 id="breaking-it-down">Breaking it down</h3>
+<p><strong><code>logic [15:0]</code></strong> - SystemVerilog's <code>logic</code> type replaces Verilog's <code>wire</code>/<code>reg</code> distinction. <code>[15:0]</code> means 16 bits, indexed from 15 (most significant bit) down to 0 (least significant bit).</p>
+<p><strong><code>always_ff @(posedge clk)</code></strong> - This is the key construct. <code>always_ff</code> explicitly models a flip-flop (sequential logic). The <code>@(posedge clk)</code> means "trigger on the rising clock edge". Synthesis tools use this to infer actual flip-flop primitives on an FPGA or ASIC.</p>
+<p><strong><code>if (load) out &lt;= in</code></strong> - The non-blocking assignment <code>&lt;=</code> (as opposed to blocking <code>=</code>) is critical in sequential blocks. All non-blocking assignments evaluate their right-hand sides <em>first</em>, then update their targets simultaneously. This is how hardware actually works: all flip-flops on the chip update at the same instant on the clock edge.</p>
+<p><strong><code>initial out = 16'h0000</code></strong> - Sets the simulation starting value to 0. In real hardware, flip-flops power up to an undefined state, but for simulation this gives us a clean baseline.</p>
+<h3 id="what-about-reset">What about reset?</h3>
+<p>There is no reset signal here. For simulation, <code>initial</code> handles the starting state. If targeting an FPGA, we would add a synchronous reset:</p>
+<pre><code>always_ff @(posedge clk) begin
+    if (reset)     out &lt;= 16'h0000;
+    else if (load) out &lt;= in;
+end
+</code></pre>
+<p>We add this when we integrate into the full CPU. For now, keep it simple.</p>
+<h2 id="test">Test</h2>
+<p>The testbench proves the register works by testing every edge case: hold on load=0, latch on load=1, overwrite, and hold across multiple clock ticks.</p>
+<pre><code>`timescale 1ns/1ps
+
+module tb_register;
+
+    logic        clk;
+    logic        load;
+    logic [15:0] in;
+    logic [15:0] out;
+
+    register dut (.clk(clk), .load(load), .in(in), .out(out));
+
+    initial clk = 0;
+    always #5 clk = ~clk;
+
+    task tick;
+        input [15:0] expected;
+        input [63:0] test_num;
+        input [127:0] description;
+        begin
+            @(posedge clk);
+            #1;
+            if (out === expected)
+                $display(&quot;[PASS] Test %0d: %s -&gt; out=0x%04X&quot;, test_num, description, out);
+            else begin
+                $display(&quot;[FAIL] Test %0d: %s -&gt; expected=0x%04X, got=0x%04X&quot;,
+                         test_num, description, expected, out);
+                $finish(1);
+            end
+        end
+    endtask
+
+    integer pass_count;
+
+    initial begin
+        pass_count = 0;
+        load = 0;
+        in   = 16'h0000;
+
+        // Test 1: load=0 holds initial value
+        load = 0; in = 16'hDEAD;
+        tick(16'h0000, 1, &quot;load=0: holds initial 0x0000&quot;);
+        pass_count++;
+
+        // Test 2: load=1 latches
+        load = 1; in = 16'hABCD;
+        tick(16'hABCD, 2, &quot;load=1: latches 0xABCD&quot;);
+        pass_count++;
+
+        // Test 3: load=0 holds latched value
+        load = 0; in = 16'hFFFF;
+        tick(16'hABCD, 3, &quot;load=0: holds 0xABCD&quot;);
+        pass_count++;
+
+        // Test 4: load=1 overwrites
+        load = 1; in = 16'h1234;
+        tick(16'h1234, 4, &quot;load=1: latches 0x1234&quot;);
+        pass_count++;
+
+        // Test 5: consecutive load
+        load = 1; in = 16'h5678;
+        tick(16'h5678, 5, &quot;load=1: overwrites to 0x5678&quot;);
+        pass_count++;
+
+        // Test 6: hold across multiple ticks
+        load = 0; in = 16'hBEEF;
+        @(posedge clk); #1;
+        @(posedge clk); #1;
+        @(posedge clk); #1;
+        if (out === 16'h5678)
+            $display(&quot;[PASS] Test 6: load=0: holds 0x5678 across 3 ticks&quot;);
+        else begin
+            $display(&quot;[FAIL] Test 6: expected 0x5678, got 0x%04X&quot;, out);
+            $finish(1);
+        end
+        pass_count++;
+
+        $display(&quot;All %0d tests passed.&quot;, pass_count);
+        $finish;
+    end
+
+    initial begin
+        #1000;
+        $display(&quot;[ERROR] Simulation timeout&quot;);
+        $finish(1);
+    end
+
+endmodule
+</code></pre>
+<h3 id="running-it">Running it</h3>
+<pre><code>iverilog -g2012 -o tb_register 01-registers/tb/tb_register.sv 01-registers/rtl/register.sv &amp;&amp; vvp tb_register
+</code></pre>
+<p>Expected output:</p>
+<pre><code>[PASS] Test 1: load=0: holds initial 0x0000 -&gt; out=0x0000
+[PASS] Test 2: load=1: latches 0xABCD -&gt; out=0xABCD
+[PASS] Test 3: load=0: holds 0xABCD -&gt; out=0xABCD
+[PASS] Test 4: load=1: latches 0x1234 -&gt; out=0x1234
+[PASS] Test 5: load=1: overwrites to 0x5678 -&gt; out=0x5678
+[PASS] Test 6: load=0: holds 0x5678 across 3 ticks
+All 6 tests passed.
+</code></pre>
+<h2 id="interactive-demo">Interactive Demo</h2>
+<p><strong>-&gt; <a href="https://kiki-pi-one.vercel.app/registers">Open the Register Demo</a></strong></p>
+<p>The demo runs the same logic as the SystemVerilog, written in TypeScript so it runs in your browser:</p>
+<pre><code>// register.ts - mirrors register.sv exactly
+export function tickRegister(state: RegisterState, inputs: RegisterInputs): RegisterState {
+  const newOut = inputs.load ? inputs.in &amp; 0xFFFF : state.out;
+  return { out: newOut };
+}
+</code></pre>
+<p>Same interface, same behaviour. One compiles to hardware; one runs in Chrome.</p>
+<h2 id="where-this-is-used">Where This Is Used</h2>
+<p>In the final CPU, we instantiate two registers:</p>
+<pre><code>// Inside cpu.sv (Part 5)
+register reg_A (.clk(clk), .load(load_A), .in(a_input), .out(A));
+register reg_D (.clk(clk), .load(load_D), .in(alu_out),  .out(D));
+</code></pre>
+<ul>
+<li><strong>Register A</strong> holds addresses and constants, feeds into the ALU as operand Y, and doubles as the jump target for the PC</li>
+<li><strong>Register D</strong> is the general data register and the primary ALU operand X</li>
+</ul>
+<p>The <code>load</code> signal for each register is decoded from the instruction's destination bits - the <code>ddd</code> field we defined in the ISA spec.</p>
+<h2 id="whats-next">What's Next</h2>
+<p>We have storage. Now we need computation.</p>
+<p>In <strong>Part 2</strong>, we build the <strong>ALU (Arithmetic Logic Unit)</strong> - the component that does all the actual math. We will see how 6 control bits select between 28 different operations, and work through the trick behind the <code>D+1</code> operation.</p>
+<p><a href="./02-alu.md">Part 2: The ALU -&gt;</a></p>
+<hr />
+<p><em><a href="./00-isa-spec.md">&lt;- Part 0: The ISA</a></em>
+<em><a href="https://github.com/SreejitS/KiKi-Pi-One">KiKi-Pi-One on GitHub</a></em>
+<em><a href="https://kiki-pi-one.vercel.app/registers">Live Demo</a></em></p>
+</div>
+</body></html>

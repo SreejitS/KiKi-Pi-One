@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Part 0: The Instruction Set Architecture - Designing KiKi-Pi-One's Language</title></head>
+<body>
+<div id="kiki-article">
+<style>
+  /* ID selector (#) beats any class-based theme rule */
+
+  /* ── Layout ── */
+  #kiki-article {
+    font-family: inherit !important;
+    line-height: 1.75 !important;
+    color: inherit !important;
+  }
+  /* ── Headings ── */
+  #kiki-article h2 {
+    font-size: 1.5em !important;
+    font-weight: 700 !important;
+    margin: 2.5rem 0 1rem !important;
+    color: inherit !important;
+    line-height: 1.2 !important;
+  }
+  #kiki-article h3 {
+    font-size: 1.2em !important;
+    font-weight: 600 !important;
+    margin: 2rem 0 0.75rem !important;
+    color: inherit !important;
+    line-height: 1.3 !important;
+  }
+  #kiki-article p {
+    margin: 1rem 0 !important;
+  }
+  /* ── Links ── */
+  #kiki-article a {
+    color: #4338ca !important;
+    text-decoration: underline !important;
+    text-underline-offset: 2px !important;
+  }
+  #kiki-article a:hover {
+    color: #3730a3 !important;
+  }
+  /* ── Horizontal rule ── */
+  #kiki-article hr {
+    border: none !important;
+    border-top: 1px solid #999 !important;
+    margin: 2.5rem auto !important;
+    max-width: 80% !important;
+  }
+  /* ── Blockquotes ── */
+  #kiki-article blockquote {
+    border-left: 3px solid #4338ca !important;
+    margin: 1.5rem 0 !important;
+    padding: 0.5rem 0 0.5rem 1.25rem !important;
+    color: #333 !important;
+    font-style: italic !important;
+  }
+  #kiki-article blockquote p {
+    margin: 0.5rem 0 !important;
+  }
+  /* ── Lists ── */
+  #kiki-article ol, #kiki-article ul {
+    margin: 1rem 0 !important;
+    padding-left: 1.75rem !important;
+  }
+  #kiki-article li {
+    margin: 0.4rem 0 !important;
+  }
+  /* ── Tables ── */
+  #kiki-article table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin: 1.5rem 0 !important;
+    font-size: 0.92em !important;
+    background: #fff !important;
+    border-radius: 6px !important;
+    overflow: hidden !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12) !important;
+  }
+  #kiki-article th {
+    background: #f0f0f0 !important;
+    font-weight: 600 !important;
+    text-align: left !important;
+    padding: 10px 14px !important;
+    border: 1px solid #ddd !important;
+    color: #000 !important;
+  }
+  #kiki-article td {
+    padding: 9px 14px !important;
+    border: 1px solid #ddd !important;
+    text-align: left !important;
+    color: #000 !important;
+  }
+  #kiki-article tbody tr:nth-child(even) {
+    background: #f7f7f7 !important;
+  }
+  /* ── Code blocks ── */
+  #kiki-article pre {
+    background: #272822 !important;
+    color: #f8f8f2 !important;
+    padding: 1.25rem !important;
+    border-radius: 8px !important;
+    overflow-x: auto !important;
+    margin: 1.5rem 0 !important;
+    font-size: 0.88em !important;
+    line-height: 1.6 !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace !important;
+    -webkit-font-smoothing: antialiased !important;
+    white-space: pre !important;
+    word-wrap: normal !important;
+    letter-spacing: 0 !important;
+    word-spacing: 0 !important;
+  }
+  #kiki-article pre code {
+    background: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    color: inherit !important;
+    font-family: inherit !important;
+    font-size: inherit !important;
+    white-space: pre !important;
+    word-wrap: normal !important;
+    letter-spacing: 0 !important;
+  }
+  /* ── Inline code ── */
+  #kiki-article p code,
+  #kiki-article li code,
+  #kiki-article td code,
+  #kiki-article h2 code,
+  #kiki-article h3 code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace !important;
+    background: #e0e0e0 !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+    font-size: 0.9em !important;
+    color: #000 !important;
+  }
+  #kiki-article strong {
+    font-weight: 700 !important;
+    color: inherit !important;
+  }
+  /* ── Images ── */
+  #kiki-article img {
+    max-width: 100% !important;
+    height: auto !important;
+    border-radius: 6px !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+    margin: 1rem 0 !important;
+  }
+</style>
+<p><em>This is Part 0 of the KiKi-Pi-One series, where we build a 16-bit CPU from scratch.</em>
+<em><a href="https://github.com/SreejitS/KiKi-Pi-One">GitHub</a></em></p>
+<p>Before writing a single line of hardware code, we need to answer one question: <strong>what instructions should our CPU understand?</strong></p>
+<p>The Instruction Set Architecture (ISA) is the contract between hardware and software. Every component we build - the ALU, the registers, the memory, and the assembler - derives from this spec. Get the ISA wrong, and everything downstream breaks.</p>
+<p>KiKi-Pi-One uses exactly <strong>two instruction types</strong>. That is not a limitation. With just two instructions, we can understand every bit, build the hardware without a lookup table, and implement a complete assembler in under 200 lines of Python. The architecture is inspired by the Nand2Tetris HACK computer - one of the most elegant minimal ISAs ever designed.</p>
+<h2 id="the-big-picture">The Big Picture</h2>
+<p>Every program is a sequence of 16-bit binary words stored in ROM. The CPU fetches one word per clock cycle and executes it. There are two kinds:</p>
+<pre><code>0 vvvvvvvvvvvvvvv   &lt;- A-instruction (bit 15 = 0)
+111accccccdddjjj    &lt;- C-instruction (bit 15 = 1)
+</code></pre>
+<p>That is it. Let us look at each one.</p>
+<h2 id="the-a-instruction-loading-a-value">The A-Instruction: Loading a Value</h2>
+<p>The A-instruction loads a 15-bit constant into the <strong>A register</strong>.</p>
+<pre><code>Bit:  15  14 13 12 11 10  9  8  7  6  5  4  3  2  1  0
+       0   v  v  v  v  v  v  v  v  v  v  v  v  v  v  v
+       |   +------------- 15-bit value --------------+
+     fixed
+</code></pre>
+<p>Bit 15 is always 0. The remaining 15 bits hold any value from 0 to 32,767.</p>
+<p>In assembly, you write it with an <code>@</code> prefix:</p>
+<pre><code>@5       // loads 5 into A
+@100     // loads 100 into A
+@SCREEN  // loads 16384 into A (predefined symbol)
+</code></pre>
+<p>The A register serves double duty:
+1. <strong>Data register</strong> - holds a value the ALU can use
+2. <strong>Address register</strong> - tells the CPU where in RAM to read or write (<code>M = RAM[A]</code>)</p>
+<p>Any time you want to work with a memory address or a large constant, you first load it into A.</p>
+<h2 id="the-c-instruction-compute-store-jump">The C-Instruction: Compute, Store, Jump</h2>
+<p>The C-instruction is where all the work happens. It tells the CPU to:</p>
+<ol>
+<li><strong>Compute</strong> something using the ALU</li>
+<li><strong>Store</strong> the result somewhere</li>
+<li><strong>Maybe jump</strong> to a different instruction</li>
+</ol>
+<pre><code>Bit:  15  14  13  12  11  10   9   8   7   6   5   4   3   2   1   0
+       1   1   1   a   c1  c2  c3  c4  c5  c6  d1  d2  d3  j1  j2  j3
+       |       |   |   |                    |   |        |   |        |
+       +-fixed-+   a   +------- comp -------+   +- dest -+   +- jump -+
+</code></pre>
+<p>Bits 14-13 are always 1 (reserved). The remaining bits split into three fields.</p>
+<h3 id="the-comp-field-bits-12-6-what-to-compute">The <code>comp</code> field (bits 12-6): what to compute</h3>
+<p>Seven bits control the ALU. Bit 12 (<code>a</code>) selects whether the second ALU input comes from the <strong>A register</strong> or <strong>M (RAM[A])</strong>. The other six bits select the operation.</p>
+<table>
+<thead>
+<tr>
+<th>Mnemonic</th>
+<th>Bits (a cccccc)</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0</code></td>
+<td><code>0 101010</code></td>
+<td>Constant 0</td>
+</tr>
+<tr>
+<td><code>1</code></td>
+<td><code>0 111111</code></td>
+<td>Constant 1</td>
+</tr>
+<tr>
+<td><code>-1</code></td>
+<td><code>0 111010</code></td>
+<td>Constant -1</td>
+</tr>
+<tr>
+<td><code>D</code></td>
+<td><code>0 001100</code></td>
+<td>D register</td>
+</tr>
+<tr>
+<td><code>A</code></td>
+<td><code>0 110000</code></td>
+<td>A register</td>
+</tr>
+<tr>
+<td><code>M</code></td>
+<td><code>1 110000</code></td>
+<td>RAM[A]</td>
+</tr>
+<tr>
+<td><code>!D</code></td>
+<td><code>0 001101</code></td>
+<td>NOT D</td>
+</tr>
+<tr>
+<td><code>!A</code></td>
+<td><code>0 110001</code></td>
+<td>NOT A</td>
+</tr>
+<tr>
+<td><code>!M</code></td>
+<td><code>1 110001</code></td>
+<td>NOT M</td>
+</tr>
+<tr>
+<td><code>-D</code></td>
+<td><code>0 001111</code></td>
+<td>Negate D</td>
+</tr>
+<tr>
+<td><code>-A</code></td>
+<td><code>0 110011</code></td>
+<td>Negate A</td>
+</tr>
+<tr>
+<td><code>-M</code></td>
+<td><code>1 110011</code></td>
+<td>Negate M</td>
+</tr>
+<tr>
+<td><code>D+1</code></td>
+<td><code>0 011111</code></td>
+<td>D plus 1</td>
+</tr>
+<tr>
+<td><code>A+1</code></td>
+<td><code>0 110111</code></td>
+<td>A plus 1</td>
+</tr>
+<tr>
+<td><code>M+1</code></td>
+<td><code>1 110111</code></td>
+<td>M plus 1</td>
+</tr>
+<tr>
+<td><code>D-1</code></td>
+<td><code>0 001110</code></td>
+<td>D minus 1</td>
+</tr>
+<tr>
+<td><code>A-1</code></td>
+<td><code>0 110010</code></td>
+<td>A minus 1</td>
+</tr>
+<tr>
+<td><code>M-1</code></td>
+<td><code>1 110010</code></td>
+<td>M minus 1</td>
+</tr>
+<tr>
+<td><code>D+A</code></td>
+<td><code>0 000010</code></td>
+<td>D plus A</td>
+</tr>
+<tr>
+<td><code>D+M</code></td>
+<td><code>1 000010</code></td>
+<td>D plus M</td>
+</tr>
+<tr>
+<td><code>D-A</code></td>
+<td><code>0 010011</code></td>
+<td>D minus A</td>
+</tr>
+<tr>
+<td><code>D-M</code></td>
+<td><code>1 010011</code></td>
+<td>D minus M</td>
+</tr>
+<tr>
+<td><code>A-D</code></td>
+<td><code>0 000111</code></td>
+<td>A minus D</td>
+</tr>
+<tr>
+<td><code>M-D</code></td>
+<td><code>1 000111</code></td>
+<td>M minus D</td>
+</tr>
+<tr>
+<td><code>D&amp;A</code></td>
+<td><code>0 000000</code></td>
+<td>D AND A</td>
+</tr>
+<tr>
+<td><code>D&amp;M</code></td>
+<td><code>1 000000</code></td>
+<td>D AND M</td>
+</tr>
+<tr>
+<td><code>D\|A</code></td>
+<td><code>0 010101</code></td>
+<td>D OR A</td>
+</tr>
+<tr>
+<td><code>D\|M</code></td>
+<td><code>1 010101</code></td>
+<td>D OR M</td>
+</tr>
+</tbody>
+</table>
+<p>28 operations from 6 bits. The trick: the 6 control bits apply successive transformations to the inputs - zero it, negate it, add or AND, negate the output. Different combinations give you all 28 useful operations. We explore this in detail in <a href="./02-alu.md">Part 2 (the ALU)</a>.</p>
+<h3 id="the-dest-field-bits-5-3-where-to-store-the-result">The <code>dest</code> field (bits 5-3): where to store the result</h3>
+<p>Three bits, eight possible destinations. Multiple can be active at once:</p>
+<table>
+<thead>
+<tr>
+<th>Mnemonic</th>
+<th>Bits</th>
+<th>Writes to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>null</code></td>
+<td><code>000</code></td>
+<td>Nowhere (result discarded)</td>
+</tr>
+<tr>
+<td><code>M</code></td>
+<td><code>001</code></td>
+<td>RAM[A]</td>
+</tr>
+<tr>
+<td><code>D</code></td>
+<td><code>010</code></td>
+<td>D register</td>
+</tr>
+<tr>
+<td><code>MD</code></td>
+<td><code>011</code></td>
+<td>RAM[A] and D</td>
+</tr>
+<tr>
+<td><code>A</code></td>
+<td><code>100</code></td>
+<td>A register</td>
+</tr>
+<tr>
+<td><code>AM</code></td>
+<td><code>101</code></td>
+<td>A register and RAM[A]</td>
+</tr>
+<tr>
+<td><code>AD</code></td>
+<td><code>110</code></td>
+<td>A register and D</td>
+</tr>
+<tr>
+<td><code>AMD</code></td>
+<td><code>111</code></td>
+<td>A register, RAM[A], and D</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-jump-field-bits-2-0-when-to-jump">The <code>jump</code> field (bits 2-0): when to jump</h3>
+<p>After the ALU computes its result, the CPU checks the jump condition. If true, the program counter (PC) jumps to <code>ROM[A]</code>. If false, it increments.</p>
+<table>
+<thead>
+<tr>
+<th>Mnemonic</th>
+<th>Bits</th>
+<th>Condition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>null</code></td>
+<td><code>000</code></td>
+<td>Never jump</td>
+</tr>
+<tr>
+<td><code>JGT</code></td>
+<td><code>001</code></td>
+<td>Jump if result &gt; 0</td>
+</tr>
+<tr>
+<td><code>JEQ</code></td>
+<td><code>010</code></td>
+<td>Jump if result = 0</td>
+</tr>
+<tr>
+<td><code>JGE</code></td>
+<td><code>011</code></td>
+<td>Jump if result &gt;= 0</td>
+</tr>
+<tr>
+<td><code>JLT</code></td>
+<td><code>100</code></td>
+<td>Jump if result &lt; 0</td>
+</tr>
+<tr>
+<td><code>JNE</code></td>
+<td><code>101</code></td>
+<td>Jump if result != 0</td>
+</tr>
+<tr>
+<td><code>JLE</code></td>
+<td><code>110</code></td>
+<td>Jump if result &lt;= 0</td>
+</tr>
+<tr>
+<td><code>JMP</code></td>
+<td><code>111</code></td>
+<td>Always jump</td>
+</tr>
+</tbody>
+</table>
+<h3 id="putting-it-together-reading-a-c-instruction">Putting it together: reading a C-instruction</h3>
+<p>Let us decode <code>D=D+A</code> by hand:</p>
+<pre><code>Assembly:  D = D+A
+           |   |__|
+           |   comp (no jump)
+           dest
+
+dest = D   -&gt; d1=0, d2=1, d3=0 -&gt; 010
+comp = D+A -&gt; a=0, cccccc=000010
+jump = null -&gt; 000
+
+Full instruction:
+  1  1  1  0  0  0  0  0  1  0  0  1  0  0  0  0
+  |  |  |  |  |              |  |     |  |     |
+  C  1  1  a  +---- comp ----+  +-dst-+  +-jmp-+
+</code></pre>
+<p>Binary: <code>1110000010010000</code> = <code>0xE090</code></p>
+<h2 id="memory-map">Memory Map</h2>
+<pre><code>+--------------------------------------+
+| 0x0000 - 0x3FFF |  Data RAM (16K)    |
++--------------------------------------+
+| 0x4000 - 0x5FFF |  Screen Buffer     |  &lt;- each bit = 1 pixel
++--------------------------------------+
+|       0x6000    |  Keyboard          |  &lt;- ASCII code of last key
++--------------------------------------+
+</code></pre>
+<p>The screen buffer is 8,192 words of 16 bits = 131,072 pixels = 256 rows x 512 columns. Writing a 1 to a bit turns the corresponding pixel black.</p>
+<h2 id="predefined-symbols">Predefined Symbols</h2>
+<p>The assembler recognises these names without you defining them:</p>
+<pre><code>R0-R15    -&gt; RAM addresses 0-15   (virtual registers)
+SP        -&gt; 0   (stack pointer)
+LCL       -&gt; 1   (local variable base)
+ARG       -&gt; 2   (argument base)
+THIS      -&gt; 3   (object pointer)
+THAT      -&gt; 4   (array/string pointer)
+SCREEN    -&gt; 16384
+KBD       -&gt; 24576
+</code></pre>
+<h2 id="a-real-program-adding-two-numbers">A Real Program: Adding Two Numbers</h2>
+<p>Let us write a program that computes <code>R2 = R0 + R1</code> and annotate every bit:</p>
+<pre><code>@R0       // 0 000 000 000 000 000   -&gt; A = 0 (address of R0)
+D=M       // 1 111 110 000 010 000   -&gt; D = RAM[0]
+@R1       // 0 000 000 000 000 001   -&gt; A = 1
+D=D+M     // 1 111 000 010 010 000   -&gt; D = D + RAM[1]
+@R2       // 0 000 000 000 000 010   -&gt; A = 2
+M=D       // 1 110 001 100 001 000   -&gt; RAM[2] = D
+
+// Halt: infinite loop
+@6        // 0 000 000 000 000 110   -&gt; A = 6 (this line's ROM address)
+0;JMP     // 1 110 101 010 000 111   -&gt; jump to ROM[6] forever
+</code></pre>
+<p>Eight instructions. No ambiguity. Every bit has a purpose.</p>
+<h2 id="what-the-isa-gives-us">What the ISA Gives Us</h2>
+<p>With just two instruction types, we can:
+- Load any 15-bit constant into A
+- Compute any of 28 arithmetic/logic operations
+- Write to A, D, or RAM[A] (or all three simultaneously)
+- Jump conditionally or unconditionally
+- Access any of 65,536 memory addresses
+- Read the keyboard and write to the screen</p>
+<p>That is enough to implement a full assembler, a VM translator, and eventually a high-level language compiler.</p>
+<p>The rest of the series is building the hardware that executes this spec.</p>
+<h2 id="whats-next">What's Next</h2>
+<p>In <strong>Part 1</strong>, we build the most fundamental storage element: the <strong>register</strong>. It is a 16-bit memory cell with one job - hold a value until told to update it.</p>
+<p><a href="./01-registers.md">Part 1: The Register -&gt;</a></p>
+<hr />
+<p><em><a href="https://github.com/SreejitS/KiKi-Pi-One">KiKi-Pi-One on GitHub</a></em>
+<em><a href="../00-spec/ISA.md">Full ISA Reference</a></em></p>
+</div>
+</body></html>

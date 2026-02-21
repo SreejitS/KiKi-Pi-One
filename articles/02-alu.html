@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Part 2: The ALU - Building KiKi-Pi-One's Arithmetic Logic Unit</title></head>
+<body>
+<div id="kiki-article">
+<style>
+  /* ID selector (#) beats any class-based theme rule */
+
+  /* ── Layout ── */
+  #kiki-article {
+    font-family: inherit !important;
+    line-height: 1.75 !important;
+    color: inherit !important;
+  }
+  /* ── Headings ── */
+  #kiki-article h2 {
+    font-size: 1.5em !important;
+    font-weight: 700 !important;
+    margin: 2.5rem 0 1rem !important;
+    color: inherit !important;
+    line-height: 1.2 !important;
+  }
+  #kiki-article h3 {
+    font-size: 1.2em !important;
+    font-weight: 600 !important;
+    margin: 2rem 0 0.75rem !important;
+    color: inherit !important;
+    line-height: 1.3 !important;
+  }
+  #kiki-article p {
+    margin: 1rem 0 !important;
+  }
+  /* ── Links ── */
+  #kiki-article a {
+    color: #4338ca !important;
+    text-decoration: underline !important;
+    text-underline-offset: 2px !important;
+  }
+  #kiki-article a:hover {
+    color: #3730a3 !important;
+  }
+  /* ── Horizontal rule ── */
+  #kiki-article hr {
+    border: none !important;
+    border-top: 1px solid #999 !important;
+    margin: 2.5rem auto !important;
+    max-width: 80% !important;
+  }
+  /* ── Blockquotes ── */
+  #kiki-article blockquote {
+    border-left: 3px solid #4338ca !important;
+    margin: 1.5rem 0 !important;
+    padding: 0.5rem 0 0.5rem 1.25rem !important;
+    color: #333 !important;
+    font-style: italic !important;
+  }
+  #kiki-article blockquote p {
+    margin: 0.5rem 0 !important;
+  }
+  /* ── Lists ── */
+  #kiki-article ol, #kiki-article ul {
+    margin: 1rem 0 !important;
+    padding-left: 1.75rem !important;
+  }
+  #kiki-article li {
+    margin: 0.4rem 0 !important;
+  }
+  /* ── Tables ── */
+  #kiki-article table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin: 1.5rem 0 !important;
+    font-size: 0.92em !important;
+    background: #fff !important;
+    border-radius: 6px !important;
+    overflow: hidden !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12) !important;
+  }
+  #kiki-article th {
+    background: #f0f0f0 !important;
+    font-weight: 600 !important;
+    text-align: left !important;
+    padding: 10px 14px !important;
+    border: 1px solid #ddd !important;
+    color: #000 !important;
+  }
+  #kiki-article td {
+    padding: 9px 14px !important;
+    border: 1px solid #ddd !important;
+    text-align: left !important;
+    color: #000 !important;
+  }
+  #kiki-article tbody tr:nth-child(even) {
+    background: #f7f7f7 !important;
+  }
+  /* ── Code blocks ── */
+  #kiki-article pre {
+    background: #272822 !important;
+    color: #f8f8f2 !important;
+    padding: 1.25rem !important;
+    border-radius: 8px !important;
+    overflow-x: auto !important;
+    margin: 1.5rem 0 !important;
+    font-size: 0.88em !important;
+    line-height: 1.6 !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace !important;
+    -webkit-font-smoothing: antialiased !important;
+    white-space: pre !important;
+    word-wrap: normal !important;
+    letter-spacing: 0 !important;
+    word-spacing: 0 !important;
+  }
+  #kiki-article pre code {
+    background: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    color: inherit !important;
+    font-family: inherit !important;
+    font-size: inherit !important;
+    white-space: pre !important;
+    word-wrap: normal !important;
+    letter-spacing: 0 !important;
+  }
+  /* ── Inline code ── */
+  #kiki-article p code,
+  #kiki-article li code,
+  #kiki-article td code,
+  #kiki-article h2 code,
+  #kiki-article h3 code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace !important;
+    background: #e0e0e0 !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+    font-size: 0.9em !important;
+    color: #000 !important;
+  }
+  #kiki-article strong {
+    font-weight: 700 !important;
+    color: inherit !important;
+  }
+  /* ── Images ── */
+  #kiki-article img {
+    max-width: 100% !important;
+    height: auto !important;
+    border-radius: 6px !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+    margin: 1rem 0 !important;
+  }
+</style>
+<p><em>This is Part 2 of the KiKi-Pi-One series, where we build a 16-bit CPU from scratch.</em>
+<em><a href="./01-registers.md">&lt;- Part 1: The Register</a> | <a href="https://github.com/SreejitS/KiKi-Pi-One">GitHub</a> | <a href="https://kiki-pi-one.vercel.app/alu">Live Demo</a></em></p>
+<p>We have storage. Now we need computation. The <strong>ALU (Arithmetic Logic Unit)</strong> is the part of the CPU that does all the math: addition, subtraction, bitwise AND and OR, and logical negation. In KiKi-Pi-One, there is exactly one ALU, and every computation in every program passes through it. A single ALU with just <strong>6 control bits</strong> produces <strong>28 distinct operations</strong>. That sounds like too much, until you understand the trick.</p>
+<h2 id="the-interface">The Interface</h2>
+<p>Unlike the register from Part 1, the ALU has no clock. It is purely <strong>combinational</strong> - a term meaning the output updates immediately whenever any input changes. No rising edge, no waiting.</p>
+<pre><code>     +-------------------------+
+  x  |16                       | 16
+----&gt;|                         |----&gt; out
+     |                         |
+  y  |16         ALU           |----&gt; zr
+----&gt;|                         |
+     |                         |----&gt; ng
+     +------------+------------+
+                  |
+           zx nx zy ny f no
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Port</th>
+<th>Width</th>
+<th>Direction</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>x</code></td>
+<td>16</td>
+<td>Input</td>
+<td>First operand (always from D register)</td>
+</tr>
+<tr>
+<td><code>y</code></td>
+<td>16</td>
+<td>Input</td>
+<td>Second operand (from A register or RAM[A], selected by the CPU)</td>
+</tr>
+<tr>
+<td><code>zx</code></td>
+<td>1</td>
+<td>Input</td>
+<td>Zero x - replace x with 0</td>
+</tr>
+<tr>
+<td><code>nx</code></td>
+<td>1</td>
+<td>Input</td>
+<td>Bitwise NOT x (after zx)</td>
+</tr>
+<tr>
+<td><code>zy</code></td>
+<td>1</td>
+<td>Input</td>
+<td>Zero y - replace y with 0</td>
+</tr>
+<tr>
+<td><code>ny</code></td>
+<td>1</td>
+<td>Input</td>
+<td>Bitwise NOT y (after zy)</td>
+</tr>
+<tr>
+<td><code>f</code></td>
+<td>1</td>
+<td>Input</td>
+<td>Function select: 1 = add, 0 = AND</td>
+</tr>
+<tr>
+<td><code>no</code></td>
+<td>1</td>
+<td>Input</td>
+<td>Bitwise NOT the output</td>
+</tr>
+<tr>
+<td><code>out</code></td>
+<td>16</td>
+<td>Output</td>
+<td>Result</td>
+</tr>
+<tr>
+<td><code>zr</code></td>
+<td>1</td>
+<td>Output</td>
+<td>Zero flag: 1 if out == 0</td>
+</tr>
+<tr>
+<td><code>ng</code></td>
+<td>1</td>
+<td>Output</td>
+<td>Negative flag: 1 if out &lt; 0 (signed, two's complement)</td>
+</tr>
+</tbody>
+</table>
+<p>The two output flags, <code>zr</code> and <code>ng</code>, feed directly into the jump logic in the CPU. They let the program test conditions without a separate comparison instruction.</p>
+<h2 id="timing">Timing</h2>
+<p>The ALU is purely combinational - output changes within the same time step as inputs. No clock edge required.</p>
+<pre><code>// WaveDrom - paste at wavedrom.com
+{ &quot;signal&quot;: [
+  { &quot;name&quot;: &quot;x&quot;,   &quot;wave&quot;: &quot;x=.=.&quot;, &quot;data&quot;: [&quot;5&quot;, &quot;5&quot;, &quot;5&quot;] },
+  { &quot;name&quot;: &quot;y&quot;,   &quot;wave&quot;: &quot;x=.=.&quot;, &quot;data&quot;: [&quot;3&quot;, &quot;3&quot;, &quot;3&quot;] },
+  { &quot;name&quot;: &quot;ctrl&quot;,&quot;wave&quot;: &quot;x=.=.&quot;, &quot;data&quot;: [&quot;D+A&quot;, &quot;D-A&quot;, &quot;D&amp;A&quot;] },
+  { &quot;name&quot;: &quot;out&quot;, &quot;wave&quot;: &quot;x=.=.&quot;, &quot;data&quot;: [&quot;8&quot;,  &quot;2&quot;,  &quot;1&quot;] },
+  { &quot;name&quot;: &quot;zr&quot;,  &quot;wave&quot;: &quot;x0...&quot; },
+  { &quot;name&quot;: &quot;ng&quot;,  &quot;wave&quot;: &quot;x0.0.&quot; }
+]}
+</code></pre>
+<p>Change the control bits, and the output updates instantly. No clock needed.</p>
+<h2 id="the-big-insight-6-bits-28-operations">The Big Insight: 6 Bits, 28 Operations</h2>
+<p>The control bits apply <strong>successive transformations</strong> in a fixed pipeline:</p>
+<pre><code>x --[zx]--[nx]--+
+                +--[f]--[no]--&gt; out
+y --[zy]--[ny]--+
+</code></pre>
+<p>Each stage either passes its input unchanged or transforms it:</p>
+<ol>
+<li><strong>zx</strong>: replace x with 0 (or keep x)</li>
+<li><strong>nx</strong>: bitwise NOT x (or keep x)</li>
+<li><strong>zy</strong>: replace y with 0 (or keep y)</li>
+<li><strong>ny</strong>: bitwise NOT y (or keep y)</li>
+<li><strong>f</strong>: output = x + y (add) or x &amp; y (AND)</li>
+<li><strong>no</strong>: bitwise NOT the output (or keep it)</li>
+</ol>
+<p>By composing these simple transformations, you synthesise any of the 28 ISA operations:</p>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th>zx</th>
+<th>nx</th>
+<th>zy</th>
+<th>ny</th>
+<th>f</th>
+<th>no</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0</code></td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>Constant 0</td>
+</tr>
+<tr>
+<td><code>1</code></td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>Constant 1</td>
+</tr>
+<tr>
+<td><code>-1</code></td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>Constant -1</td>
+</tr>
+<tr>
+<td><code>D</code></td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>D</td>
+</tr>
+<tr>
+<td><code>A</code></td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>A</td>
+</tr>
+<tr>
+<td><code>!D</code></td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>NOT D</td>
+</tr>
+<tr>
+<td><code>!A</code></td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>NOT A</td>
+</tr>
+<tr>
+<td><code>-D</code></td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>Negate D</td>
+</tr>
+<tr>
+<td><code>-A</code></td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>Negate A</td>
+</tr>
+<tr>
+<td><code>D+1</code></td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>D + 1</td>
+</tr>
+<tr>
+<td><code>A+1</code></td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>A + 1</td>
+</tr>
+<tr>
+<td><code>D-1</code></td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>D - 1</td>
+</tr>
+<tr>
+<td><code>A-1</code></td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>A - 1</td>
+</tr>
+<tr>
+<td><code>D+A</code></td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>D + A</td>
+</tr>
+<tr>
+<td><code>D-A</code></td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>D - A</td>
+</tr>
+<tr>
+<td><code>A-D</code></td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>1</td>
+<td>1</td>
+<td>A - D</td>
+</tr>
+<tr>
+<td><code>D&amp;A</code></td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>D AND A</td>
+</tr>
+<tr>
+<td><code>D\|A</code></td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+<td>1</td>
+<td>D OR A</td>
+</tr>
+</tbody>
+</table>
+<p>Each row with <code>A</code> has a corresponding <code>M</code> variant (e.g. <code>D+M</code>, <code>!M</code>) that uses the same control bits but with <code>y = RAM[A]</code> instead of <code>y = A</code>. The CPU handles that mux before the ALU, so the ALU itself never sees the <code>a</code> bit.</p>
+<h2 id="the-d1-trick">The D+1 Trick</h2>
+<p>How does <code>D+1</code> work with bits <code>zx=0, nx=1, zy=1, ny=1, f=1, no=1</code>? Let us trace through with D = 5.</p>
+<p><strong>Step 1 - zx=0:</strong> x stays as D = 5</p>
+<p><strong>Step 2 - nx=1:</strong> x = ~5 = 0xFFFA (bitwise NOT, all bits flipped)</p>
+<p><strong>Step 3 - zy=1:</strong> y = 0</p>
+<p><strong>Step 4 - ny=1:</strong> y = ~0 = 0xFFFF (in two's complement, this is -1)</p>
+<p><strong>Step 5 - f=1 (add):</strong> result = 0xFFFA + 0xFFFF = 0x1FFF9. 16-bit arithmetic discards the carry, so result = 0xFFF9.</p>
+<p><strong>Step 6 - no=1:</strong> out = ~0xFFF9 = 0x0006 = 6</p>
+<p>And 5 + 1 = 6. It works.</p>
+<p>The identity at play:</p>
+<pre><code>~(~D + (-1)) = ~(-D - 1 - 1) = ~(-D - 2) = (D + 2) - 1 = D + 1
+</code></pre>
+<p>The six control bits exploit the relationship between bitwise NOT and two's complement arithmetic to produce any of the 28 operations from just an adder and an AND gate plus a few pre/post inversions.</p>
+<h2 id="implementation">Implementation</h2>
+<p>Here is the complete SystemVerilog. Like the register, it fits in a handful of lines.</p>
+<pre><code>// alu.sv
+`timescale 1ns/1ps
+
+module alu (
+    input  logic [15:0] x,
+    input  logic [15:0] y,
+    input  logic        zx,
+    input  logic        nx,
+    input  logic        zy,
+    input  logic        ny,
+    input  logic        f,
+    input  logic        no,
+    output logic [15:0] out,
+    output logic        zr,
+    output logic        ng
+);
+    logic [15:0] px, py, result;
+
+    always_comb begin
+        // Pre-process x
+        px = zx ? 16'h0000 : x;
+        px = nx ? ~px : px;
+
+        // Pre-process y
+        py = zy ? 16'h0000 : y;
+        py = ny ? ~py : py;
+
+        // Compute
+        result = f ? (px + py) : (px &amp; py);
+
+        // Post-process
+        out = no ? ~result : result;
+
+        // Flags
+        zr = (out == 16'h0000);
+        ng = out[15];
+    end
+
+endmodule
+</code></pre>
+<h3 id="breaking-it-down">Breaking it down</h3>
+<p><strong><code>always_comb</code></strong> tells the synthesis tool this is combinational logic. No clock, no flip-flops. The block re-evaluates whenever any input changes. Compare this to Part 1's <code>always_ff @(posedge clk)</code>, which only triggers on clock edges.</p>
+<p><strong>Intermediate signals <code>px</code> and <code>py</code></strong> hold the pre-processed versions of x and y. SystemVerilog allows multiple assignments to the same variable inside <code>always_comb</code> - each replaces the previous. This is valid for combinational logic.</p>
+<p><strong><code>result</code></strong> is 16 bits. When two 16-bit values are added and overflow, the carry bit is silently discarded. That is the two's complement wraparound we rely on for subtraction.</p>
+<p><strong><code>zr = (out == 16'h0000)</code></strong> computes the zero flag. The synthesis tool optimises this into the appropriate gate structure.</p>
+<p><strong><code>ng = out[15]</code></strong> extracts the sign bit. In two's complement, bit 15 being 1 means the value is negative.</p>
+<h2 id="test">Test</h2>
+<p>The testbench covers all 28 ISA operations plus two flag edge cases. Since the ALU is combinational, there is no clock - we set inputs, wait one nanosecond for propagation, and check.</p>
+<pre><code>// Excerpt from tb_alu.sv - all 28 operations tested with x=5, y=3
+
+{zx,nx,zy,ny,f,no} = 6'b101010; check(16'h0000, 1, 0, &quot;0&quot;);      // constant 0
+{zx,nx,zy,ny,f,no} = 6'b111111; check(16'h0001, 0, 0, &quot;1&quot;);      // constant 1
+{zx,nx,zy,ny,f,no} = 6'b000010; check(16'h0008, 0, 0, &quot;D+A&quot;);    // 5+3=8
+{zx,nx,zy,ny,f,no} = 6'b010011; check(16'h0002, 0, 0, &quot;D-A&quot;);    // 5-3=2
+{zx,nx,zy,ny,f,no} = 6'b000111; check(16'hFFFE, 0, 1, &quot;A-D&quot;);    // 3-5=-2
+{zx,nx,zy,ny,f,no} = 6'b011111; check(16'h0006, 0, 0, &quot;D+1&quot;);    // 5+1=6
+{zx,nx,zy,ny,f,no} = 6'b000000; check(16'h0001, 0, 0, &quot;D&amp;A&quot;);    // 5&amp;3=1
+{zx,nx,zy,ny,f,no} = 6'b010101; check(16'h0007, 0, 0, &quot;D|A&quot;);    // 5|3=7
+</code></pre>
+<h3 id="running-it">Running it</h3>
+<pre><code>iverilog -g2012 -o tb_alu 02-alu/tb/tb_alu.sv 02-alu/rtl/alu.sv &amp;&amp; vvp tb_alu
+</code></pre>
+<p>Expected output:</p>
+<pre><code>[PASS] 01: 0      -&gt; 0x0000 (zr=1 ng=0)
+[PASS] 02: 1      -&gt; 0x0001 (zr=0 ng=0)
+[PASS] 03: -1     -&gt; 0xFFFF (zr=0 ng=1)
+[PASS] 04: D      -&gt; 0x0005 (zr=0 ng=0)
+[PASS] 05: A      -&gt; 0x0003 (zr=0 ng=0)
+[PASS] 06: !D     -&gt; 0xFFFA (zr=0 ng=1)
+[PASS] 07: !A     -&gt; 0xFFFC (zr=0 ng=1)
+[PASS] 08: -D     -&gt; 0xFFFB (zr=0 ng=1)
+[PASS] 09: -A     -&gt; 0xFFFD (zr=0 ng=1)
+[PASS] 10: D+1    -&gt; 0x0006 (zr=0 ng=0)
+[PASS] 11: A+1    -&gt; 0x0004 (zr=0 ng=0)
+[PASS] 12: D-1    -&gt; 0x0004 (zr=0 ng=0)
+[PASS] 13: A-1    -&gt; 0x0002 (zr=0 ng=0)
+[PASS] 14: D+A    -&gt; 0x0008 (zr=0 ng=0)
+[PASS] 15: D-A    -&gt; 0x0002 (zr=0 ng=0)
+[PASS] 16: A-D    -&gt; 0xFFFE (zr=0 ng=1)
+[PASS] 17: D&amp;A    -&gt; 0x0001 (zr=0 ng=0)
+[PASS] 18: D|A    -&gt; 0x0007 (zr=0 ng=0)
+[PASS] 19: M      -&gt; 0x0007 (zr=0 ng=0)
+[PASS] 20: !M     -&gt; 0xFFF8 (zr=0 ng=1)
+[PASS] 21: -M     -&gt; 0xFFF9 (zr=0 ng=1)
+[PASS] 22: M+1    -&gt; 0x0008 (zr=0 ng=0)
+[PASS] 23: M-1    -&gt; 0x0006 (zr=0 ng=0)
+[PASS] 24: D+M    -&gt; 0x000C (zr=0 ng=0)
+[PASS] 25: D-M    -&gt; 0xFFFE (zr=0 ng=1)
+[PASS] 26: M-D    -&gt; 0x0002 (zr=0 ng=0)
+[PASS] 27: D&amp;M    -&gt; 0x0005 (zr=0 ng=0)
+[PASS] 28: D|M    -&gt; 0x0007 (zr=0 ng=0)
+[PASS] 29: zr     -&gt; 0x0000 (zr=1 ng=0)
+[PASS] 30: ng     -&gt; 0x8000 (zr=0 ng=1)
+All 30 tests passed.
+</code></pre>
+<h2 id="interactive-demo">Interactive Demo</h2>
+<p><strong>-&gt; <a href="https://kiki-pi-one.vercel.app/alu">Open the ALU Demo</a></strong></p>
+<p>The TypeScript implementation mirrors the SystemVerilog exactly:</p>
+<pre><code>// alu.ts
+export function computeALU(inputs: ALUInputs): ALUOutput {
+  let px = inputs.zx ? 0 : inputs.x;
+  px = inputs.nx ? (~px &amp; 0xFFFF) : px;
+  let py = inputs.zy ? 0 : inputs.y;
+  py = inputs.ny ? (~py &amp; 0xFFFF) : py;
+  const result = inputs.f ? ((px + py) &amp; 0xFFFF) : (px &amp; py);
+  const out    = inputs.no ? (~result &amp; 0xFFFF) : result;
+  return {
+    out,
+    zr: out === 0 ? 1 : 0,
+    ng: (out &gt;&gt; 15) &amp; 1 ? 1 : 0,
+  };
+}
+</code></pre>
+<p>Same algorithm, same output. One compiles to silicon; one runs in Chrome.</p>
+<h2 id="where-this-is-used">Where This Is Used</h2>
+<p>In the final CPU, the ALU sits at the centre of every computation:</p>
+<pre><code>// Inside cpu.sv (Part 5)
+alu alu_unit (
+    .x  (D),
+    .y  (alu_y),      // mux: A when a=0, M when a=1
+    .zx (inst[11]),
+    .nx (inst[10]),
+    .zy (inst[9]),
+    .ny (inst[8]),
+    .f  (inst[7]),
+    .no (inst[6]),
+    .out(alu_out),
+    .zr (zr),
+    .ng (ng)
+);
+</code></pre>
+<p>The six <code>inst</code> bits come directly from the <code>cccccc</code> field of the C-instruction. No decoder needed. The instruction format and the ALU ports are designed to match exactly.</p>
+<h2 id="whats-next">What's Next</h2>
+<p>We can compute. But computation is useless without somewhere to store results beyond our two registers.</p>
+<p>In <strong>Part 3</strong>, we build <strong>Data Memory</strong>: 16,384 words of read/write RAM with memory-mapped I/O for the screen and keyboard. We will see how a single address space handles both RAM and peripherals - one of the most elegant ideas in computer architecture.</p>
+<p><a href="./03-memory.md">Part 3: Data Memory -&gt;</a></p>
+<hr />
+<p><em><a href="./01-registers.md">&lt;- Part 1: The Register</a></em>
+<em><a href="https://github.com/SreejitS/KiKi-Pi-One">KiKi-Pi-One on GitHub</a></em>
+<em><a href="https://kiki-pi-one.vercel.app/alu">Live Demo</a></em></p>
+</div>
+</body></html>

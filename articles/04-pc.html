@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Part 4: Program Counter - Building KiKi-Pi-One's Instruction Sequencer</title></head>
+<body>
+<div id="kiki-article">
+<style>
+  /* ID selector (#) beats any class-based theme rule */
+
+  /* ── Layout ── */
+  #kiki-article {
+    font-family: inherit !important;
+    line-height: 1.75 !important;
+    color: inherit !important;
+  }
+  /* ── Headings ── */
+  #kiki-article h2 {
+    font-size: 1.5em !important;
+    font-weight: 700 !important;
+    margin: 2.5rem 0 1rem !important;
+    color: inherit !important;
+    line-height: 1.2 !important;
+  }
+  #kiki-article h3 {
+    font-size: 1.2em !important;
+    font-weight: 600 !important;
+    margin: 2rem 0 0.75rem !important;
+    color: inherit !important;
+    line-height: 1.3 !important;
+  }
+  #kiki-article p {
+    margin: 1rem 0 !important;
+  }
+  /* ── Links ── */
+  #kiki-article a {
+    color: #4338ca !important;
+    text-decoration: underline !important;
+    text-underline-offset: 2px !important;
+  }
+  #kiki-article a:hover {
+    color: #3730a3 !important;
+  }
+  /* ── Horizontal rule ── */
+  #kiki-article hr {
+    border: none !important;
+    border-top: 1px solid #999 !important;
+    margin: 2.5rem auto !important;
+    max-width: 80% !important;
+  }
+  /* ── Blockquotes ── */
+  #kiki-article blockquote {
+    border-left: 3px solid #4338ca !important;
+    margin: 1.5rem 0 !important;
+    padding: 0.5rem 0 0.5rem 1.25rem !important;
+    color: #333 !important;
+    font-style: italic !important;
+  }
+  #kiki-article blockquote p {
+    margin: 0.5rem 0 !important;
+  }
+  /* ── Lists ── */
+  #kiki-article ol, #kiki-article ul {
+    margin: 1rem 0 !important;
+    padding-left: 1.75rem !important;
+  }
+  #kiki-article li {
+    margin: 0.4rem 0 !important;
+  }
+  /* ── Tables ── */
+  #kiki-article table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin: 1.5rem 0 !important;
+    font-size: 0.92em !important;
+    background: #fff !important;
+    border-radius: 6px !important;
+    overflow: hidden !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12) !important;
+  }
+  #kiki-article th {
+    background: #f0f0f0 !important;
+    font-weight: 600 !important;
+    text-align: left !important;
+    padding: 10px 14px !important;
+    border: 1px solid #ddd !important;
+    color: #000 !important;
+  }
+  #kiki-article td {
+    padding: 9px 14px !important;
+    border: 1px solid #ddd !important;
+    text-align: left !important;
+    color: #000 !important;
+  }
+  #kiki-article tbody tr:nth-child(even) {
+    background: #f7f7f7 !important;
+  }
+  /* ── Code blocks ── */
+  #kiki-article pre {
+    background: #272822 !important;
+    color: #f8f8f2 !important;
+    padding: 1.25rem !important;
+    border-radius: 8px !important;
+    overflow-x: auto !important;
+    margin: 1.5rem 0 !important;
+    font-size: 0.88em !important;
+    line-height: 1.6 !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace !important;
+    -webkit-font-smoothing: antialiased !important;
+    white-space: pre !important;
+    word-wrap: normal !important;
+    letter-spacing: 0 !important;
+    word-spacing: 0 !important;
+  }
+  #kiki-article pre code {
+    background: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    color: inherit !important;
+    font-family: inherit !important;
+    font-size: inherit !important;
+    white-space: pre !important;
+    word-wrap: normal !important;
+    letter-spacing: 0 !important;
+  }
+  /* ── Inline code ── */
+  #kiki-article p code,
+  #kiki-article li code,
+  #kiki-article td code,
+  #kiki-article h2 code,
+  #kiki-article h3 code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace !important;
+    background: #e0e0e0 !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+    font-size: 0.9em !important;
+    color: #000 !important;
+  }
+  #kiki-article strong {
+    font-weight: 700 !important;
+    color: inherit !important;
+  }
+  /* ── Images ── */
+  #kiki-article img {
+    max-width: 100% !important;
+    height: auto !important;
+    border-radius: 6px !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+    margin: 1rem 0 !important;
+  }
+</style>
+<p><em>This is Part 4 of the KiKi-Pi-One series, where we build a 16-bit CPU from scratch.</em>
+<em><a href="./03-memory.md">&lt;- Part 3: Data Memory</a> | <a href="https://github.com/SreejitS/KiKi-Pi-One">GitHub</a> | <a href="https://kiki-pi-one.vercel.app/pc">Live Demo</a></em></p>
+<p>We have registers that store values. An ALU that computes. Memory that persists data and maps the screen and keyboard. But none of these parts can do anything useful without answering one question: <strong>which instruction should the CPU execute next?</strong> That is the only job of the <strong>program counter</strong> (PC). It holds a 16-bit address pointing into instruction ROM. Every clock tick, the CPU reads the instruction at that address, executes it, and the PC moves to the next one. Usually "next" means PC + 1. But sometimes the program needs to jump - a loop going back, an if-else branching forward. The PC makes this possible. It is the simplest component we have built so far, but also the most important. Without it, the CPU is a calculator that cannot execute a sequence of instructions.</p>
+<h2 id="the-interface">The Interface</h2>
+<p>The PC is a 16-bit register with a priority-encoded mux in front of it. Three control signals tell it what to do on the next clock edge.</p>
+<pre><code>             +-------------------------------+
+  in[16] ---&gt;|                               |
+             |      PROGRAM COUNTER          |----&gt; out[16]
+  load   ---&gt;|                               |
+  inc    ---&gt;|   reset &gt; load &gt; inc &gt; hold   |
+  reset  ---&gt;|                               |
+  clk    ---&gt;|                               |
+             +-------------------------------+
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Port</th>
+<th>Width</th>
+<th>Direction</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>clk</code></td>
+<td>1</td>
+<td>Input</td>
+<td>Clock - rising-edge triggered</td>
+</tr>
+<tr>
+<td><code>in</code></td>
+<td>16</td>
+<td>Input</td>
+<td>Jump target address (from the A register in the CPU)</td>
+</tr>
+<tr>
+<td><code>load</code></td>
+<td>1</td>
+<td>Input</td>
+<td>Jump enable - 1 to load <code>in</code> into the PC</td>
+</tr>
+<tr>
+<td><code>inc</code></td>
+<td>1</td>
+<td>Input</td>
+<td>Increment - 1 to advance to the next instruction</td>
+</tr>
+<tr>
+<td><code>reset</code></td>
+<td>1</td>
+<td>Input</td>
+<td>Synchronous reset - 1 to set PC back to 0</td>
+</tr>
+<tr>
+<td><code>out</code></td>
+<td>16</td>
+<td>Output</td>
+<td>Current PC value - this is the address the CPU fetches from</td>
+</tr>
+</tbody>
+</table>
+<h2 id="timing-diagram">Timing Diagram</h2>
+<p>Here is what a typical sequence looks like. The CPU starts in reset, then counts through a few instructions, then jumps.</p>
+<pre><code>         +--+  +--+  +--+  +--+  +--+  +--+
+clk   ---+  +--+  +--+  +--+  +--+  +--+  +-
+          ^     ^     ^     ^     ^     ^
+reset -----+
+           +--------------------------------
+inc   ------------------------------+
+                                    +-------
+load  ----------------------------------+
+                                        +---
+in    ------------------------------ 0x00C8
+out   -- 0000 --- 0000 -- 0001 -- 0002 - 00C8
+              ^        ^       ^       ^
+           reset    hold    inc    load
+</code></pre>
+<pre><code>// WaveDrom - paste at wavedrom.com
+{ &quot;signal&quot;: [
+  { &quot;name&quot;: &quot;clk&quot;,   &quot;wave&quot;: &quot;p......&quot; },
+  { &quot;name&quot;: &quot;reset&quot;, &quot;wave&quot;: &quot;1.0....&quot; },
+  { &quot;name&quot;: &quot;inc&quot;,   &quot;wave&quot;: &quot;0...1.0&quot; },
+  { &quot;name&quot;: &quot;load&quot;,  &quot;wave&quot;: &quot;0.....1&quot; },
+  { &quot;name&quot;: &quot;in&quot;,    &quot;wave&quot;: &quot;x....=.&quot;, &quot;data&quot;: [&quot;0x00C8&quot;] },
+  { &quot;name&quot;: &quot;out&quot;,   &quot;wave&quot;: &quot;=.=.=.=&quot;, &quot;data&quot;: [&quot;0x0000&quot;, &quot;0x0000&quot;, &quot;0x0001&quot;, &quot;0x00C8&quot;] }
+]}
+</code></pre>
+<p>Cycle by cycle:
+1. <strong>Reset active</strong> - PC goes to 0. Everything else is ignored.
+2. <strong>No signals</strong> - PC holds at 0 (stall).
+3. <strong>Inc</strong> - PC advances to 1.
+4. <strong>Inc</strong> - PC advances to 2.
+5. <strong>Load</strong> - PC jumps to 0x00C8 (200 in decimal).</p>
+<h2 id="priority-who-wins">Priority: Who Wins?</h2>
+<p>What happens if <code>reset</code> and <code>load</code> are both 1 at the same time? The PC uses <strong>priority encoding</strong> - a term meaning the highest-priority signal wins, and the rest are ignored.</p>
+<pre><code>reset  load  inc  | What happens
+-----------------+----------------------------
+  1      x    x   | PC = 0          (restart)
+  0      1    x   | PC = in         (jump)
+  0      0    1   | PC = PC + 1     (next instruction)
+  0      0    0   | PC holds        (stall)
+</code></pre>
+<p>The <code>x</code> means "don't care" - when reset is active, it does not matter what load or inc say.</p>
+<p>This priority order makes hardware sense:
+- <strong>Reset is king.</strong> When you power on or restart, the CPU must start from address 0 regardless of what any other signal says.
+- <strong>Load beats inc.</strong> A jump is an explicit instruction. If the program says "go to address 100", it would be wrong to increment to 101 instead.
+- <strong>Inc is the default.</strong> In normal execution, every instruction advances to the next one.</p>
+<h2 id="implementation">Implementation</h2>
+<p>The SystemVerilog is short. A single <code>always_ff</code> block with an if/else-if chain that directly implements the priority table.</p>
+<pre><code>// pc.sv
+`timescale 1ns/1ps
+
+module pc (
+    input  logic        clk,
+    input  logic [15:0] in,
+    input  logic        load,
+    input  logic        inc,
+    input  logic        reset,
+    output logic [15:0] out
+);
+    always_ff @(posedge clk) begin
+        if (reset)
+            out &lt;= 16'h0000;
+        else if (load)
+            out &lt;= in;
+        else if (inc)
+            out &lt;= out + 16'h0001;
+    end
+
+    initial out = 16'h0000;
+
+endmodule
+</code></pre>
+<h3 id="breaking-it-down">Breaking it down</h3>
+<p><strong>The if/else-if chain</strong> creates the priority. The synthesizer turns this into a priority mux - reset is checked first, then load, then inc. If none match, <code>out</code> holds its value. That is SystemVerilog's default for <code>always_ff</code> when no branch is taken.</p>
+<p><strong>Overflow wraps naturally.</strong> A 16-bit addition of 0xFFFF + 1 produces 0x0000 with the carry bit discarded. No special handling needed.</p>
+<p><strong>The <code>initial</code> statement</strong> sets the simulation starting value. Real hardware would use the reset signal to initialise.</p>
+<h2 id="test">Test</h2>
+<p>The testbench covers every row of the priority table plus boundary conditions.</p>
+<pre><code>// Test cases from tb_pc.sv:
+// 1. inc: 0 -&gt; 1           (normal advance)
+// 2. inc: 1 -&gt; 2           (consecutive increment)
+// 3. load: jump to 0x00C8  (explicit jump)
+// 4. load beats inc        (priority: load &gt; inc)
+// 5. reset beats all       (priority: reset &gt; load &gt; inc)
+// 6. hold: no signals      (PC stays put)
+// 7. wrap: 0xFFFF -&gt; 0x0000 (overflow)
+// 8. reset at zero         (stays at zero)
+</code></pre>
+<p>Tests 4 and 5 are the key ones. Test 4 asserts that when both <code>load</code> and <code>inc</code> are active, the PC takes the jump target, not PC+1. Test 5 asserts that reset overrides everything - even when load and inc are both active, the PC goes to 0.</p>
+<h3 id="running-it">Running it</h3>
+<pre><code>iverilog -g2012 -o tb_pc 04-pc/tb/tb_pc.sv 04-pc/rtl/pc.sv &amp;&amp; vvp tb_pc
+</code></pre>
+<p>Expected output:</p>
+<pre><code>[PASS] Test 1: inc: 0-&gt;1
+[PASS] Test 2: inc: 1-&gt;2
+[PASS] Test 3: load: jump to 0x00C8
+[PASS] Test 4: load beats inc: jump to 0x0200
+[PASS] Test 5: reset beats load+inc: back to 0
+[PASS] Test 6: hold: no signals, stays at 0
+[PASS] Test 7: wrap: 0xFFFF+1 -&gt; 0x0000
+[PASS] Test 8: reset at zero stays zero
+All 8 tests passed.
+</code></pre>
+<h2 id="interactive-demo">Interactive Demo</h2>
+<p><strong>-&gt; <a href="https://kiki-pi-one.vercel.app/pc">Open the Program Counter Demo</a></strong></p>
+<p>The TypeScript implementation mirrors the priority logic:</p>
+<pre><code>// pc.ts
+export function tickPC(state: PCState, inputs: PCInputs): PCState {
+  if (inputs.reset) {
+    return { out: 0 };
+  } else if (inputs.load) {
+    return { out: inputs.in &amp; 0xffff };
+  } else if (inputs.inc) {
+    return { out: (state.out + 1) &amp; 0xffff };
+  }
+  return { out: state.out };
+}
+</code></pre>
+<p>Toggle the three control switches and click CLOCK TICK to watch the PC count up, jump, or reset.</p>
+<h2 id="where-this-is-used">Where This Is Used</h2>
+<p>In the CPU (Part 5), the program counter connects to the instruction ROM and the jump logic:</p>
+<pre><code>  ROM
+  +------+
+  |      |---- instruction[16] ----&gt; CPU decode
+  |      |
+  |      |&lt;--- address[16] ----- PC.out
+  +------+
+                                      ^
+  CPU jump logic --- load ------------+
+  CPU clock      --- inc (always 1) --+
+  CPU reset      --- reset -----------+
+                                      ^
+  A register     --- in[16] ----------+
+</code></pre>
+<p>The CPU always sets <code>inc = 1</code>, so the PC advances every cycle by default. When the CPU decodes a jump instruction and the ALU flags match the jump condition, it asserts <code>load</code>, and the PC takes the value from the A register instead of incrementing.</p>
+<h2 id="whats-next">What's Next</h2>
+<p>We now have every building block:
+- <strong>Registers</strong> to store values (Part 1)
+- <strong>ALU</strong> to compute (Part 2)
+- <strong>Memory</strong> to read and write data (Part 3)
+- <strong>Program Counter</strong> to sequence instructions (this part)</p>
+<p>In <strong>Part 5</strong>, we wire them all together into a working CPU. The instruction decoder reads a 16-bit instruction and sets every control signal we have built - register loads, ALU operation, memory write, and the PC's load signal for jumps.</p>
+<p><a href="./05-cpu.md">Part 5: The CPU -&gt;</a></p>
+<hr />
+<p><em><a href="./03-memory.md">&lt;- Part 3: Data Memory</a></em>
+<em><a href="https://github.com/SreejitS/KiKi-Pi-One">KiKi-Pi-One on GitHub</a></em>
+<em><a href="https://kiki-pi-one.vercel.app/pc">Live Demo</a></em></p>
+</div>
+</body></html>

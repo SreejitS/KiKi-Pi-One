@@ -1,11 +1,16 @@
 ---
-title: "Part 1: The Register - Building KiKi-Pi-One's Memory Cells"
-series: "KiKi-Pi-One"
+medium_url: ''
 part: 1
-tags: ["kiki-pi-one", "cpu-design", "hardware", "systemverilog", "registers"]
-medium_url: ""
-wordpress_url: ""
-status: draft
+series: KiKi-Pi-One
+status: ready
+tags:
+- kiki-pi-one
+- cpu-design
+- hardware
+- systemverilog
+- registers
+title: 'Part 1: The Register - Building KiKi-Pi-One''s Memory Cells'
+wordpress_url: ''
 ---
 
 *This is Part 1 of the KiKi-Pi-One series, where we build a 16-bit CPU from scratch.*

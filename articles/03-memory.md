@@ -1,11 +1,16 @@
 ---
-title: "Part 3: Data Memory - Building KiKi-Pi-One's RAM and Memory-Mapped I/O"
-series: "KiKi-Pi-One"
+medium_url: ''
 part: 3
-tags: ["kiki-pi-one", "cpu-design", "hardware", "systemverilog", "memory"]
-medium_url: ""
-wordpress_url: ""
-status: draft
+series: KiKi-Pi-One
+status: ready
+tags:
+- kiki-pi-one
+- cpu-design
+- hardware
+- systemverilog
+- memory
+title: 'Part 3: Data Memory - Building KiKi-Pi-One''s RAM and Memory-Mapped I/O'
+wordpress_url: ''
 ---
 
 *This is Part 3 of the KiKi-Pi-One series, where we build a 16-bit CPU from scratch.*

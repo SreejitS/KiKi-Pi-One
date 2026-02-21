@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Part 3: Data Memory - Building KiKi-Pi-One's RAM and Memory-Mapped I/O</title></head>
+<body>
+<div id="kiki-article">
+<style>
+  /* ID selector (#) beats any class-based theme rule */
+
+  /* ── Layout ── */
+  #kiki-article {
+    font-family: inherit !important;
+    line-height: 1.75 !important;
+    color: inherit !important;
+  }
+  /* ── Headings ── */
+  #kiki-article h2 {
+    font-size: 1.5em !important;
+    font-weight: 700 !important;
+    margin: 2.5rem 0 1rem !important;
+    color: inherit !important;
+    line-height: 1.2 !important;
+  }
+  #kiki-article h3 {
+    font-size: 1.2em !important;
+    font-weight: 600 !important;
+    margin: 2rem 0 0.75rem !important;
+    color: inherit !important;
+    line-height: 1.3 !important;
+  }
+  #kiki-article p {
+    margin: 1rem 0 !important;
+  }
+  /* ── Links ── */
+  #kiki-article a {
+    color: #4338ca !important;
+    text-decoration: underline !important;
+    text-underline-offset: 2px !important;
+  }
+  #kiki-article a:hover {
+    color: #3730a3 !important;
+  }
+  /* ── Horizontal rule ── */
+  #kiki-article hr {
+    border: none !important;
+    border-top: 1px solid #999 !important;
+    margin: 2.5rem auto !important;
+    max-width: 80% !important;
+  }
+  /* ── Blockquotes ── */
+  #kiki-article blockquote {
+    border-left: 3px solid #4338ca !important;
+    margin: 1.5rem 0 !important;
+    padding: 0.5rem 0 0.5rem 1.25rem !important;
+    color: #333 !important;
+    font-style: italic !important;
+  }
+  #kiki-article blockquote p {
+    margin: 0.5rem 0 !important;
+  }
+  /* ── Lists ── */
+  #kiki-article ol, #kiki-article ul {
+    margin: 1rem 0 !important;
+    padding-left: 1.75rem !important;
+  }
+  #kiki-article li {
+    margin: 0.4rem 0 !important;
+  }
+  /* ── Tables ── */
+  #kiki-article table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin: 1.5rem 0 !important;
+    font-size: 0.92em !important;
+    background: #fff !important;
+    border-radius: 6px !important;
+    overflow: hidden !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12) !important;
+  }
+  #kiki-article th {
+    background: #f0f0f0 !important;
+    font-weight: 600 !important;
+    text-align: left !important;
+    padding: 10px 14px !important;
+    border: 1px solid #ddd !important;
+    color: #000 !important;
+  }
+  #kiki-article td {
+    padding: 9px 14px !important;
+    border: 1px solid #ddd !important;
+    text-align: left !important;
+    color: #000 !important;
+  }
+  #kiki-article tbody tr:nth-child(even) {
+    background: #f7f7f7 !important;
+  }
+  /* ── Code blocks ── */
+  #kiki-article pre {
+    background: #272822 !important;
+    color: #f8f8f2 !important;
+    padding: 1.25rem !important;
+    border-radius: 8px !important;
+    overflow-x: auto !important;
+    margin: 1.5rem 0 !important;
+    font-size: 0.88em !important;
+    line-height: 1.6 !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace !important;
+    -webkit-font-smoothing: antialiased !important;
+    white-space: pre !important;
+    word-wrap: normal !important;
+    letter-spacing: 0 !important;
+    word-spacing: 0 !important;
+  }
+  #kiki-article pre code {
+    background: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    color: inherit !important;
+    font-family: inherit !important;
+    font-size: inherit !important;
+    white-space: pre !important;
+    word-wrap: normal !important;
+    letter-spacing: 0 !important;
+  }
+  /* ── Inline code ── */
+  #kiki-article p code,
+  #kiki-article li code,
+  #kiki-article td code,
+  #kiki-article h2 code,
+  #kiki-article h3 code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace !important;
+    background: #e0e0e0 !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+    font-size: 0.9em !important;
+    color: #000 !important;
+  }
+  #kiki-article strong {
+    font-weight: 700 !important;
+    color: inherit !important;
+  }
+  /* ── Images ── */
+  #kiki-article img {
+    max-width: 100% !important;
+    height: auto !important;
+    border-radius: 6px !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+    margin: 1rem 0 !important;
+  }
+</style>
+<p><em>This is Part 3 of the KiKi-Pi-One series, where we build a 16-bit CPU from scratch.</em>
+<em><a href="./02-alu.md">&lt;- Part 2: The ALU</a> | <a href="https://github.com/SreejitS/KiKi-Pi-One">GitHub</a> | <a href="https://kiki-pi-one.vercel.app/memory">Live Demo</a></em></p>
+<p>We have registers that store two values. We have an ALU that can compute anything the ISA defines. But two registers are not enough. A loop needs a counter variable. A function call needs a stack. A game needs a screen. <strong>Data memory</strong> gives the CPU somewhere to put things - 16,384 words of general-purpose RAM, a screen buffer, and a keyboard register, all sharing a single address bus. The screen and keyboard are not separate "peripherals" with special wiring. They are just addresses. Write to 0x4000 and pixels appear. Read 0x6000 and you get the last key pressed. This is <strong>memory-mapped I/O</strong>, one of the most elegant ideas in computer architecture.</p>
+<h2 id="the-interface">The Interface</h2>
+<p>Like the register from Part 1, the memory is <strong>synchronous</strong>: writes happen on the rising clock edge when <code>load = 1</code>. Unlike the register, the output is <strong>combinational</strong>: it reflects the value at the current address immediately, without waiting for a clock edge.</p>
+<pre><code>                  +--------------------------------------+
+  address[15] ---&gt;|                                      |
+                  |                                      |
+  in[16]     ----&gt;|           DATA MEMORY                |----&gt; out[16]
+                  |                                      |
+  load       ----&gt;|  +----------+-----------+----------+ |
+  clk        ----&gt;|  |  RAM     |  Screen   | Keyboard | |
+                  |  |  16K     |  8K       | 1 word   | |
+                  |  |0000-3FFF |4000-5FFF  |  6000    | |
+                  |  +----------+-----------+----------+ |
+                  +--------------------------------------+
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Port</th>
+<th>Width</th>
+<th>Direction</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>clk</code></td>
+<td>1</td>
+<td>Input</td>
+<td>Clock - rising-edge triggered</td>
+</tr>
+<tr>
+<td><code>load</code></td>
+<td>1</td>
+<td>Input</td>
+<td>Write enable - 1 to write on next clock edge</td>
+</tr>
+<tr>
+<td><code>address</code></td>
+<td>15</td>
+<td>Input</td>
+<td>Memory address (0x0000 to 0x7FFF)</td>
+</tr>
+<tr>
+<td><code>in</code></td>
+<td>16</td>
+<td>Input</td>
+<td>Data to write</td>
+</tr>
+<tr>
+<td><code>out</code></td>
+<td>16</td>
+<td>Output</td>
+<td>Data at current address (combinational read)</td>
+</tr>
+</tbody>
+</table>
+<p>The address is 15 bits wide, covering 32,768 locations. The ISA defines three regions within this space.</p>
+<h2 id="timing-diagram">Timing Diagram</h2>
+<pre><code>         +--+  +--+  +--+  +--+  +--+
+clk   ---+  +--+  +--+  +--+  +--+  +-
+          ^     ^     ^     ^     ^
+load  ----------------+     +---------
+                      +-----+
+addr  ---- 0005 ------+ 0005+----- 0005
+in    ---- CAFE ------+ CAFE+----- DEAD
+out   ---- 0000 ------+-----+CAFE ----
+                              ^
+                         latches here
+</code></pre>
+<pre><code>// WaveDrom - paste at wavedrom.com
+{ &quot;signal&quot;: [
+  { &quot;name&quot;: &quot;clk&quot;,     &quot;wave&quot;: &quot;p.....&quot; },
+  { &quot;name&quot;: &quot;load&quot;,    &quot;wave&quot;: &quot;0.1.0.&quot; },
+  { &quot;name&quot;: &quot;address&quot;, &quot;wave&quot;: &quot;x.=...&quot;, &quot;data&quot;: [&quot;0x0005&quot;] },
+  { &quot;name&quot;: &quot;in&quot;,      &quot;wave&quot;: &quot;x.=...&quot;, &quot;data&quot;: [&quot;0xCAFE&quot;] },
+  { &quot;name&quot;: &quot;out&quot;,     &quot;wave&quot;: &quot;x...=.&quot;, &quot;data&quot;: [&quot;0xCAFE&quot;] }
+]}
+</code></pre>
+<p>Write <code>0xCAFE</code> to RAM address <code>0x0005</code> with <code>load = 1</code>. On the rising edge, the value is latched. The output immediately reflects the stored value at the current address.</p>
+<h2 id="the-memory-map">The Memory Map</h2>
+<pre><code>Address Range      Region       Size         Description
+-----------------------------------------------------------
+0x0000 - 0x3FFF    RAM          16,384 w     General-purpose read/write
+0x4000 - 0x5FFF    Screen       8,192 w      Each bit = one pixel (256x512)
+0x6000             Keyboard     1 w          ASCII code of last key pressed
+</code></pre>
+<p>A C-instruction like <code>M=D</code> writes the D register to <code>RAM[A]</code>. The A register holds the address. If A = 5, the write goes to general-purpose RAM. If A = 16384 (0x4000), the write goes to the screen buffer. Same instruction, same wire, different destination. The CPU does not need separate "write to RAM" and "write to screen" instructions. It just writes to M. The memory hardware figures out where the data goes based on the address.</p>
+<h2 id="address-decoding-two-bits-three-devices">Address Decoding: Two Bits, Three Devices</h2>
+<p>How does the hardware know which device to talk to? It looks at two bits of the address.</p>
+<pre><code>address[14]  address[13]  Region
+---------------------------------
+    0            x         RAM        (0x0000-0x3FFF)
+    1            0         Screen     (0x4000-0x5FFF)
+    1            1         Keyboard   (0x6000)
+</code></pre>
+<p>Let us trace a few addresses to verify:</p>
+<p><strong>Address 0x0005</strong> = <code>0b000_0000_0000_0101</code>. Bit [14] = 0 -&gt; RAM. Index = 5.</p>
+<p><strong>Address 0x3FFF</strong> = <code>0b011_1111_1111_1111</code>. Bit [14] = 0 -&gt; RAM. Index = 16383 (last RAM word).</p>
+<p><strong>Address 0x4000</strong> = <code>0b100_0000_0000_0000</code>. Bit [14] = 1, bit [13] = 0 -&gt; Screen. Index = 0 (first screen word).</p>
+<p><strong>Address 0x6000</strong> = <code>0b110_0000_0000_0000</code>. Bit [14] = 1, bit [13] = 1 -&gt; Keyboard.</p>
+<p>The decoding is just two wires. No comparators, no lookup tables. The address space was designed so that two bits cleanly partition it.</p>
+<h2 id="the-screen-buffer">The Screen Buffer</h2>
+<p>Each of the 8,192 screen words holds 16 bits. Each bit controls one pixel: 1 = black (on), 0 = white (off). That gives us 8,192 x 16 = 131,072 pixels, arranged as a 256-row x 512-column display.</p>
+<p>To light up the top-left pixel, write <code>0x0001</code> to address <code>0x4000</code>. The screen buffer is just RAM with a side effect: a display controller reads it continuously and drives the pixels.</p>
+<h2 id="the-keyboard-register">The Keyboard Register</h2>
+<p>Address <code>0x6000</code> holds the ASCII code of the currently pressed key. If no key is pressed, it reads <code>0x0000</code>. The CPU can poll it:</p>
+<pre><code>@KBD     // A = 0x6000
+D=M      // D = key code (or 0 if no key)
+</code></pre>
+<p>The keyboard register is <strong>read-only</strong>. If the CPU tries to write to it, the hardware silently ignores the write.</p>
+<h2 id="implementation">Implementation</h2>
+<p>Here is the complete SystemVerilog. The structure mirrors the three-region memory map exactly.</p>
+<pre><code>// memory.sv
+`timescale 1ns/1ps
+
+module memory (
+    input  logic        clk,
+    input  logic        load,
+    input  logic [14:0] address,
+    input  logic [15:0] in,
+    output logic [15:0] out
+);
+
+    // Sub-memories
+    logic [15:0] ram    [0:16383];   // 16K words
+    logic [15:0] screen [0:8191];    // 8K words
+    logic [15:0] kbd;                // 1 word (externally driven)
+
+    // Address decoding
+    wire ram_sel    = ~address[14];
+    wire screen_sel =  address[14] &amp; ~address[13];
+    wire kbd_sel    =  address[14] &amp;  address[13];
+
+    // Synchronous write
+    always_ff @(posedge clk) begin
+        if (load) begin
+            if (ram_sel)
+                ram[address[13:0]] &lt;= in;
+            else if (screen_sel)
+                screen[address[12:0]] &lt;= in;
+            // Keyboard is read-only
+        end
+    end
+
+    // Combinational read
+    always_comb begin
+        if (ram_sel)
+            out = ram[address[13:0]];
+        else if (screen_sel)
+            out = screen[address[12:0]];
+        else if (kbd_sel)
+            out = kbd;
+        else
+            out = 16'h0000;
+    end
+
+    initial begin
+        for (int i = 0; i &lt; 16384; i++) ram[i] = 16'h0000;
+        for (int i = 0; i &lt; 8192;  i++) screen[i] = 16'h0000;
+        kbd = 16'h0000;
+    end
+
+endmodule
+</code></pre>
+<h3 id="breaking-it-down">Breaking it down</h3>
+<p><strong>Three arrays</strong> model the three regions. <code>ram</code> and <code>screen</code> are arrays of 16-bit words. <code>kbd</code> is a single word, driven externally by the keyboard controller (in the full computer, Part 6).</p>
+<p><strong>Address decoding</strong> uses three <code>wire</code> signals derived from the address bits. These are purely combinational - they update instantly when the address changes. <code>~address[14]</code> selects the bottom half (RAM). <code>address[14] &amp; ~address[13]</code> selects the third quarter (Screen). <code>address[14] &amp; address[13]</code> selects the fourth quarter (Keyboard).</p>
+<p><strong><code>always_ff @(posedge clk)</code></strong> handles writes. On the rising clock edge, if <code>load = 1</code>, the decoder checks which region the address falls in and writes to the appropriate array. The keyboard case is missing on purpose - writes to it are silently ignored.</p>
+<p><strong><code>always_comb</code></strong> handles reads. The output is combinational, meaning it changes immediately when the address changes. This is important: the CPU needs to read <code>M = RAM[A]</code> in the same cycle that A is set.</p>
+<h2 id="test">Test</h2>
+<p>The testbench covers all three memory regions, boundary addresses, and edge cases.</p>
+<pre><code>// Excerpt from tb_memory.sv
+
+// Write 0xCAFE to RAM address 0x0000
+load = 1; address = 15'h0000; in = 16'hCAFE;
+check(16'hCAFE, &quot;RAM write/read at 0x0000&quot;);
+
+// Last RAM word: 0x3FFF
+load = 1; address = 15'h3FFF; in = 16'hBEEF;
+check(16'hBEEF, &quot;RAM write/read at 0x3FFF (last RAM word)&quot;);
+
+// Screen write at 0x4000
+load = 1; address = 15'h4000; in = 16'hF00D;
+check(16'hF00D, &quot;Screen write/read at 0x4000&quot;);
+
+// Keyboard is read-only
+dut.kbd = 16'h0041;  // externally set to ASCII 'A'
+load = 1; address = 15'h6000; in = 16'hFFFF;
+check(16'h0041, &quot;Keyboard write is ignored (read-only)&quot;);
+</code></pre>
+<h3 id="running-it">Running it</h3>
+<pre><code>iverilog -g2012 -o tb_memory 03-memory/tb/tb_memory.sv 03-memory/rtl/memory.sv &amp;&amp; vvp tb_memory
+</code></pre>
+<p>Expected output:</p>
+<pre><code>[PASS] 01: RAM write/read at 0x0000
+[PASS] 02: RAM write/read at 0x3FFF (last RAM word)
+[PASS] 03: RAM load=0 holds value
+[PASS] 04: Screen write/read at 0x4000
+[PASS] 05: Screen write/read at 0x5FFF (last screen word)
+[PASS] 06: Keyboard read returns external value
+[PASS] 07: Keyboard write is ignored (read-only)
+[PASS] 08: Multiple RAM writes don't interfere
+[PASS] 09: Boundary: RAM 0x3FFF and Screen 0x4000 are separate
+[PASS] 10: RAM holds across multiple ticks with load=0
+All 10 tests passed.
+</code></pre>
+<h2 id="interactive-demo">Interactive Demo</h2>
+<p><strong>-&gt; <a href="https://kiki-pi-one.vercel.app/memory">Open the Memory Demo</a></strong></p>
+<p>The TypeScript implementation mirrors the SystemVerilog address decoding:</p>
+<pre><code>// memory.ts
+export function tickMemory(state: MemoryState, inputs: MemoryInputs): MemoryState {
+  if (!inputs.load) return state;
+  const addr = inputs.address &amp; 0x7fff;
+  const region = decodeRegion(addr);
+  const value = inputs.in &amp; 0xffff;
+  if (region === &quot;RAM&quot;) {
+    const newRam = new Uint16Array(state.ram);
+    newRam[addr &amp; 0x3fff] = value;
+    return { ...state, ram: newRam };
+  }
+  if (region === &quot;Screen&quot;) {
+    const newScreen = new Uint16Array(state.screen);
+    newScreen[addr &amp; 0x1fff] = value;
+    return { ...state, screen: newScreen };
+  }
+  return state; // Keyboard is read-only
+}
+</code></pre>
+<p>Toggle a 15-bit address, see which memory region it falls in, and write values with the familiar LOAD + CLOCK TICK pattern.</p>
+<h2 id="where-this-is-used">Where This Is Used</h2>
+<p>In the final CPU, the memory module sits between the ALU output and the M operand:</p>
+<pre><code>// Inside cpu.sv (Part 5)
+memory data_memory (
+    .clk     (clk),
+    .load    (write_M),         // d3 bit of C-instruction
+    .address (A[14:0]),         // A register selects address
+    .in      (alu_out),         // ALU result is written
+    .out     (M)                // M = RAM[A], feeds back into ALU
+);
+</code></pre>
+<p>When a C-instruction has <code>d3 = 1</code> (destination includes M), the ALU output is written to <code>RAM[A]</code>. When the ALU needs M as an input (the <code>a</code> bit = 1), it reads from this same module. One address bus, one data path, three devices.</p>
+<h2 id="whats-next">What's Next</h2>
+<p>We can store values and compute results. But the CPU also needs to know <strong>which instruction to execute next</strong>.</p>
+<p>In <strong>Part 4</strong>, we build the <strong>Program Counter</strong> - a register that normally increments by 1 each cycle, but can be loaded with a new value for jumps and resets. It is the simplest component yet, and the last piece before we wire everything together into a CPU.</p>
+<p><a href="./04-pc.md">Part 4: Program Counter -&gt;</a></p>
+<hr />
+<p><em><a href="./02-alu.md">&lt;- Part 2: The ALU</a></em>
+<em><a href="https://github.com/SreejitS/KiKi-Pi-One">KiKi-Pi-One on GitHub</a></em>
+<em><a href="https://kiki-pi-one.vercel.app/memory">Live Demo</a></em></p>
+</div>
+</body></html>

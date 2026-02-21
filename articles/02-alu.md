@@ -1,11 +1,16 @@
 ---
-title: "Part 2: The ALU - Building KiKi-Pi-One's Arithmetic Logic Unit"
-series: "KiKi-Pi-One"
+medium_url: ''
 part: 2
-tags: ["kiki-pi-one", "cpu-design", "hardware", "systemverilog", "alu"]
-medium_url: ""
-wordpress_url: ""
-status: draft
+series: KiKi-Pi-One
+status: ready
+tags:
+- kiki-pi-one
+- cpu-design
+- hardware
+- systemverilog
+- alu
+title: 'Part 2: The ALU - Building KiKi-Pi-One''s Arithmetic Logic Unit'
+wordpress_url: ''
 ---
 
 *This is Part 2 of the KiKi-Pi-One series, where we build a 16-bit CPU from scratch.*
