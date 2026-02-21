@@ -6,7 +6,7 @@ Since Medium removed their API and WordPress is behind Mod_Security,
 this script prepares the article for manual pasting:
 
   1. Converts Markdown → clean HTML
-  2. Saves the HTML to a temp file
+  2. Saves the HTML to articles/ (same name, .html extension)
   3. Copies the content to clipboard
   4. Opens the target editor in your browser
 
@@ -24,15 +24,14 @@ Dependencies:
 """
 
 import argparse
+import re
 import subprocess
 import sys
-import tempfile
 import webbrowser
 from pathlib import Path
 
 import frontmatter
 import markdown
-from pygments.formatters import HtmlFormatter
 
 
 EDITOR_URLS = {
@@ -40,174 +39,192 @@ EDITOR_URLS = {
     "wordpress": "https://sreejits.com/wp-admin/post-new.php",
 }
 
-# Generate Pygments syntax highlighting CSS (monokai theme, scoped)
-_PYGMENTS_CSS = HtmlFormatter(style='monokai').get_style_defs('.kiki-article .codehilite')
-
 WORDPRESS_STYLE = """\
 <style>
-  .kiki-article {
-    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
-    line-height: 1.75;
-    color: #1a1a2e;
-    max-width: 720px;
-    margin: 0 auto;
+  /* ID selector (#) beats any class-based theme rule */
+
+  /* ── Layout ── */
+  #kiki-article {
+    font-family: inherit !important;
+    line-height: 1.75 !important;
+    color: inherit !important;
   }
-  .kiki-article h2 {
-    font-size: 1.6em;
-    font-weight: 700;
-    margin: 2.5rem 0 1rem;
-    color: #1a1a2e;
+  /* ── Headings ── */
+  #kiki-article h2 {
+    font-size: 1.5em !important;
+    font-weight: 700 !important;
+    margin: 2.5rem 0 1rem !important;
+    color: inherit !important;
+    line-height: 1.2 !important;
   }
-  .kiki-article h3 {
-    font-size: 1.2em;
-    font-weight: 600;
-    margin: 2rem 0 0.75rem;
-    color: #1a1a2e;
+  #kiki-article h3 {
+    font-size: 1.2em !important;
+    font-weight: 600 !important;
+    margin: 2rem 0 0.75rem !important;
+    color: inherit !important;
+    line-height: 1.3 !important;
   }
-  .kiki-article p {
-    margin: 1rem 0;
+  #kiki-article p {
+    margin: 1rem 0 !important;
   }
-  .kiki-article a {
-    color: #6366f1;
-    text-decoration: none;
+  /* ── Links ── */
+  #kiki-article a {
+    color: #4338ca !important;
+    text-decoration: underline !important;
+    text-underline-offset: 2px !important;
   }
-  .kiki-article a:hover {
-    text-decoration: underline;
+  #kiki-article a:hover {
+    color: #3730a3 !important;
   }
-  .kiki-article hr {
-    border: none;
-    border-top: 1px solid #e2e8f0;
-    margin: 2.5rem auto;
-    max-width: 80%;
+  /* ── Horizontal rule ── */
+  #kiki-article hr {
+    border: none !important;
+    border-top: 1px solid #999 !important;
+    margin: 2.5rem auto !important;
+    max-width: 80% !important;
   }
-  .kiki-article blockquote {
-    border-left: 3px solid #6366f1;
-    margin: 1.5rem 0;
-    padding: 0.5rem 0 0.5rem 1.25rem;
-    color: #475569;
-    font-style: italic;
+  /* ── Blockquotes ── */
+  #kiki-article blockquote {
+    border-left: 3px solid #4338ca !important;
+    margin: 1.5rem 0 !important;
+    padding: 0.5rem 0 0.5rem 1.25rem !important;
+    color: #333 !important;
+    font-style: italic !important;
   }
-  .kiki-article blockquote p {
-    margin: 0.5rem 0;
+  #kiki-article blockquote p {
+    margin: 0.5rem 0 !important;
   }
-  .kiki-article ol, .kiki-article ul {
-    margin: 1rem 0;
-    padding-left: 1.75rem;
+  /* ── Lists ── */
+  #kiki-article ol, #kiki-article ul {
+    margin: 1rem 0 !important;
+    padding-left: 1.75rem !important;
   }
-  .kiki-article li {
-    margin: 0.4rem 0;
+  #kiki-article li {
+    margin: 0.4rem 0 !important;
   }
-  /* --- Tables --- */
-  .kiki-article table {
-    width: 100%;
-    border-collapse: collapse;
-    margin: 1.5rem 0;
-    font-size: 0.92em;
+  /* ── Tables ── */
+  #kiki-article table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin: 1.5rem 0 !important;
+    font-size: 0.92em !important;
+    background: #fff !important;
+    border-radius: 6px !important;
+    overflow: hidden !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12) !important;
   }
-  .kiki-article th {
-    background: #f8fafc;
-    font-weight: 600;
-    text-align: left;
-    padding: 10px 14px;
-    border: 1px solid #e2e8f0;
+  #kiki-article th {
+    background: #f0f0f0 !important;
+    font-weight: 600 !important;
+    text-align: left !important;
+    padding: 10px 14px !important;
+    border: 1px solid #ddd !important;
+    color: #000 !important;
   }
-  .kiki-article td {
-    padding: 9px 14px;
-    border: 1px solid #e2e8f0;
-    text-align: left;
+  #kiki-article td {
+    padding: 9px 14px !important;
+    border: 1px solid #ddd !important;
+    text-align: left !important;
+    color: #000 !important;
   }
-  .kiki-article tbody tr:nth-child(even) {
-    background: #f8fafc;
+  #kiki-article tbody tr:nth-child(even) {
+    background: #f7f7f7 !important;
   }
-  /* --- Code blocks (codehilite wrapper from Pygments) --- */
-  .kiki-article .codehilite {
-    margin: 1.5rem 0;
-    border-radius: 8px;
-    overflow: hidden;
+  /* ── Code blocks ── */
+  #kiki-article pre {
+    background: #272822 !important;
+    color: #f8f8f2 !important;
+    padding: 1.25rem !important;
+    border-radius: 8px !important;
+    overflow-x: auto !important;
+    margin: 1.5rem 0 !important;
+    font-size: 0.88em !important;
+    line-height: 1.6 !important;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace !important;
+    -webkit-font-smoothing: antialiased !important;
+    white-space: pre !important;
+    word-wrap: normal !important;
+    letter-spacing: 0 !important;
+    word-spacing: 0 !important;
   }
-  .kiki-article .codehilite pre {
-    margin: 0;
-    padding: 1.25rem;
-    border-radius: 8px;
-    overflow-x: auto;
-    font-size: 0.88em;
-    line-height: 1.6;
-    font-family: 'SF Mono', 'Fira Code', Consolas, 'Courier New', monospace;
-    font-variant-ligatures: none;
-    -webkit-font-smoothing: antialiased;
+  #kiki-article pre code {
+    background: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    color: inherit !important;
+    font-family: inherit !important;
+    font-size: inherit !important;
+    white-space: pre !important;
+    word-wrap: normal !important;
+    letter-spacing: 0 !important;
   }
-  .kiki-article .codehilite pre code {
-    background: none;
-    padding: 0;
-    border-radius: 0;
-    color: inherit;
-    font-size: inherit;
-    font-family: inherit;
+  /* ── Inline code ── */
+  #kiki-article p code,
+  #kiki-article li code,
+  #kiki-article td code,
+  #kiki-article h2 code,
+  #kiki-article h3 code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', monospace !important;
+    background: #e0e0e0 !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+    font-size: 0.9em !important;
+    color: #000 !important;
   }
-  /* Fallback for any <pre> not inside codehilite */
-  .kiki-article pre {
-    background: #272822;
-    color: #F8F8F2;
-    padding: 1.25rem;
-    border-radius: 8px;
-    overflow-x: auto;
-    margin: 1.5rem 0;
-    font-size: 0.88em;
-    line-height: 1.6;
-    font-family: 'SF Mono', 'Fira Code', Consolas, 'Courier New', monospace;
-    font-variant-ligatures: none;
-    -webkit-font-smoothing: antialiased;
+  #kiki-article strong {
+    font-weight: 700 !important;
+    color: inherit !important;
   }
-  .kiki-article pre code {
-    background: none;
-    padding: 0;
-    border-radius: 0;
-    color: inherit;
-    font-family: inherit;
+  /* ── Images ── */
+  #kiki-article img {
+    max-width: 100% !important;
+    height: auto !important;
+    border-radius: 6px !important;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+    margin: 1rem 0 !important;
   }
-  /* Inline code */
-  .kiki-article code {
-    font-family: 'SF Mono', 'Fira Code', Consolas, 'Courier New', monospace;
-    font-variant-ligatures: none;
-    background: #f1f5f9;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.9em;
-    color: #1e293b;
-  }
-  .kiki-article strong {
-    font-weight: 600;
-    color: #0f172a;
-  }
-  /* --- Pygments syntax highlighting --- */
-  """ + _PYGMENTS_CSS + """
 </style>"""
 
 
 def wrap_for_wordpress(html: str) -> str:
-    """Wrap article HTML in a styled container for WordPress Custom HTML blocks."""
-    return f'<div class="kiki-article">\n{WORDPRESS_STYLE}\n{html}\n</div>'
+    """Wrap article HTML in a single Custom HTML block for WordPress.
+
+    Uses an ID selector (#kiki-article) for maximum CSS specificity so our
+    code block styles beat any theme rules.
+    """
+    # Strip language classes from <code> tags so the theme can't latch on
+    html = re.sub(r'<pre><code[^>]*>', '<pre><code>', html)
+    return f'<div id="kiki-article">\n{WORDPRESS_STYLE}\n{html}\n</div>'
 
 
-def load_article(path: str) -> tuple[frontmatter.Post, str]:
+def load_article(path: str, target: str = "medium") -> tuple[frontmatter.Post, str]:
     """Load a markdown file, return (post, html_body).
-    Strips the first H1 from the body — the platform title field handles it."""
-    import re
+    Strips the first H1 from the body — the platform title field handles it.
+
+    For WordPress we skip codehilite (Pygments) because it can't parse HACK
+    assembly or ASCII diagrams — fenced_code alone gives us clean <pre><code>.
+    """
     post = frontmatter.load(path)
-    # Remove the first H1 line from markdown before converting
-    # (WordPress/Medium show the title from frontmatter, so H1 in body duplicates it)
     content = re.sub(r'^\s*#\s+.+\n', '', post.content, count=1)
-    html = markdown.markdown(
-        content,
-        extensions=["tables", "fenced_code", "codehilite", "toc"],
-        extension_configs={
-            "codehilite": {
-                "css_class": "codehilite",
-                "guess_lang": False,
-                "noclasses": False,
-            }
-        },
-    )
+
+    if target == "wordpress":
+        # Plain fenced code blocks — no syntax highlighting
+        html = markdown.markdown(
+            content,
+            extensions=["tables", "fenced_code", "toc"],
+        )
+    else:
+        html = markdown.markdown(
+            content,
+            extensions=["tables", "fenced_code", "codehilite", "toc"],
+            extension_configs={
+                "codehilite": {
+                    "css_class": "codehilite",
+                    "guess_lang": False,
+                    "noclasses": False,
+                }
+            },
+        )
     return post, html
 
 
@@ -225,17 +242,16 @@ def copy_to_clipboard(text: str):
             return False
 
 
-def save_html(html: str, title: str) -> str:
-    """Save HTML to a temp file and return its path."""
-    safe_title = title.lower().replace(" ", "-").replace("/", "-")[:40]
-    path = Path(tempfile.gettempdir()) / f"kiki-pi-one-{safe_title}.html"
+def save_html(html: str, title: str, article_path: Path) -> str:
+    """Save HTML alongside the source .md file and return its path."""
+    out_path = article_path.with_suffix(".html")
     full_html = f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>{title}</title></head>
 <body>
 {html}
 </body></html>"""
-    path.write_text(full_html)
-    return str(path)
+    out_path.write_text(full_html)
+    return str(out_path)
 
 
 def update_frontmatter_status(path: str):
@@ -248,7 +264,7 @@ def update_frontmatter_status(path: str):
         print(f"  Marked as 'ready' in frontmatter")
 
 
-def prepare_for(target: str, post: frontmatter.Post, html: str):
+def prepare_for(target: str, post: frontmatter.Post, html: str, article_path: Path):
     """Prepare and open a single target."""
     title = post.get("title", "Untitled")
     tags  = post.get("tags", [])
@@ -260,8 +276,8 @@ def prepare_for(target: str, post: frontmatter.Post, html: str):
     print(f"  Title : {title}")
     print(f"  Tags  : {', '.join(tags)}")
 
-    # Save HTML to temp file (preview reflects target styling)
-    html_path = save_html(output_html, title)
+    # Save HTML alongside the source markdown
+    html_path = save_html(output_html, title, article_path)
     print(f"  HTML  : {html_path}")
 
     # Copy to clipboard
@@ -292,8 +308,7 @@ def prepare_for(target: str, post: frontmatter.Post, html: str):
   Paste steps (WordPress):
     1. Editor is now open in your browser
     2. Click the title field → type/paste the title
-    3. In the body: click the + block → choose "Custom HTML" block → paste
-       (or switch to Code Editor view: Ctrl+Shift+Alt+M)
+    3. In the body: click + → Custom HTML block → paste
     4. Add tags in the right sidebar
     5. Click Publish / Save Draft when ready
 """)
@@ -318,11 +333,10 @@ def main():
         sys.exit(1)
 
     print(f"Loading {path}...")
-    post, html = load_article(str(path))
-
     targets = ["medium", "wordpress"] if args.target == "both" else [args.target]
     for target in targets:
-        prepare_for(target, post, html)
+        post, html = load_article(str(path), target=target)
+        prepare_for(target, post, html, path)
 
     update_frontmatter_status(str(path))
     print("\nDone. Paste the content and publish!")

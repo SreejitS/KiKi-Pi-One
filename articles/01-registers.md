@@ -1,85 +1,61 @@
 ---
-medium_url: ''
+title: "Part 1: The Register - Building KiKi-Pi-One's Memory Cells"
+series: "KiKi-Pi-One"
 part: 1
-series: KiKi-Pi-One
-status: ready
-tags:
-- cpu-design
-- hardware
-- systemverilog
-- registers
-- kiki-pi-one
-title: 'Part 1: The Register - Building KiKi-Pi-One''s Memory Cells'
-wordpress_url: ''
+tags: ["kiki-pi-one", "cpu-design", "hardware", "systemverilog", "registers"]
+medium_url: ""
+wordpress_url: ""
+status: draft
 ---
-
-# Part 1: The Register
 
 *This is Part 1 of the KiKi-Pi-One series, where we build a 16-bit CPU from scratch.*
-*[← Part 0: The ISA](./00-isa-spec.md) | [GitHub](https://github.com/SreejitS/KiKi-Pi-One) | [Live Demo](https://kiki-pi-one.vercel.app/registers)*
+*[<- Part 0: The ISA](./00-isa-spec.md) | [GitHub](https://github.com/SreejitS/KiKi-Pi-One) | [Live Demo](https://kiki-pi-one.vercel.app/registers)*
 
----
+Every CPU needs memory. Not the gigabytes-of-RAM kind. The tiny, fast storage sitting right inside the processor. The kind that holds a single value and can update it in one clock cycle. That is a **register**. In KiKi-Pi-One, the CPU has two registers - **A** and **D** - and they are both instances of the same simple module we are building today.
 
-Every CPU needs memory. Not the gigabytes of RAM kind. I mean the tiny, fast storage sitting right inside the processor itself. The kind that holds a single value and can update it in one clock cycle.
+## The Interface
 
-That's a **register**.
-
-In KiKi-Pi-One, registers are the first building block we'll implement. The CPU has two of them, the **A register** and the **D register**, and they're both instances of the same simple module we're building today.
-
----
-
-## What Is a Register?
-
-At its core, a register is a **D flip-flop** scaled to 16 bits.
-
-A D flip-flop is a memory element with a very simple contract:
-
-> On every rising clock edge, if the load signal is 1, capture the input. Otherwise, keep holding the current value.
-
-That's the entire behaviour. Nothing else.
-
-In our 16-bit version:
+A register is a **D flip-flop** scaled to 16 bits. A D flip-flop is a memory element with a simple contract: on every rising clock edge, if the load signal is 1, capture the input. Otherwise, keep the current value.
 
 ```
-     ┌─────────────────────────┐
-  in │16                       │ 16
-────▶│         register        │────▶ out
-     │                         │
-load │                         │
-────▶│                         │
-     │                         │
- clk │                         │
-────▶│                         │
-     └─────────────────────────┘
+     +-------------------------+
+  in |16                       | 16
+---->|         register        |----> out
+     |                         |
+load |                         |
+---->|                         |
+     |                         |
+ clk |                         |
+---->|                         |
+     +-------------------------+
 ```
 
-- `in`: the 16-bit value we might want to store
-- `load`: 1 = latch `in`, 0 = keep holding current value
-- `clk`: the clock, which is what makes it *synchronous* (changes happen on the tick, not instantly)
-- `out`: the currently stored value
+| Port  | Width | Direction | Description |
+|-------|-------|-----------|-------------|
+| `clk` | 1     | Input     | Clock - rising-edge triggered |
+| `load`| 1     | Input     | Write enable - 1 to latch `in`, 0 to hold |
+| `in`  | 16    | Input     | Data to store |
+| `out` | 16    | Output    | Currently stored value |
 
----
+## Timing Diagram
 
-## Timing Behaviour
-
-This is where new hardware designers sometimes get surprised: the output doesn't change *when* you set `load = 1`. It changes on the **next rising clock edge**.
+The output does not change *when* you set `load = 1`. It changes on the **next rising clock edge**. This edge-triggered behaviour is what makes digital design predictable. All registers in the system update simultaneously on the clock edge, eliminating race conditions.
 
 ```
-        ┌──┐  ┌──┐  ┌──┐  ┌──┐  ┌──┐
-clk  ───┘  └──┘  └──┘  └──┘  └──┘  └─
+        +--+  +--+  +--+  +--+  +--+
+clk  ---+  +--+  +--+  +--+  +--+  +-
+         ^     ^     ^     ^     ^
+load  ----------------+     +--------
+                      +-----+
 
-load  0     0     1     1     0
-         ↑ nothing ↑         ↑
-         held      latches   held
-
-in    X     X   0xABCD  X     X
-out   0  ───── 0x0000 ──┤  0xABCD ───
-                        ↑
-                  latches on this edge
+in    ---- DEAD ------+ABCD +--- FFFF
+out   ---- 0000 ------+-----+ABCD ---
+                              ^
+                         latches here
 ```
 
 ```json
-// WaveDrom — paste at wavedrom.com to render
+// WaveDrom - paste at wavedrom.com to render
 { "signal": [
   { "name": "clk",  "wave": "p.....",  "period": 2 },
   { "name": "load", "wave": "0.1.0." },
@@ -88,13 +64,11 @@ out   0  ───── 0x0000 ──┤  0xABCD ───
 ]}
 ```
 
-This edge-triggered behaviour is what makes digital design predictable. All registers in the system update simultaneously on the clock edge, eliminating race conditions.
+Cycle by cycle: `load` goes high with `in = 0xABCD`. On the next rising edge, `out` latches to `0xABCD`. When `load` drops back to 0, the register holds that value regardless of what appears on `in`.
 
----
+## Implementation
 
-## The Implementation
-
-Here's the complete SystemVerilog. It's short on purpose. If you need more than a few lines to implement a register, something is wrong.
+Here is the complete SystemVerilog. If you need more than a few lines to implement a register, something is wrong.
 
 ```systemverilog
 // register.sv
@@ -117,17 +91,17 @@ endmodule
 
 ### Breaking it down
 
-**`logic [15:0]`** — SystemVerilog's `logic` type replaces Verilog's `wire`/`reg` distinction. `[15:0]` means 16 bits, indexed from 15 (MSB) down to 0 (LSB).
+**`logic [15:0]`** - SystemVerilog's `logic` type replaces Verilog's `wire`/`reg` distinction. `[15:0]` means 16 bits, indexed from 15 (most significant bit) down to 0 (least significant bit).
 
-**`always_ff @(posedge clk)`** — This is the key. `always_ff` is a SystemVerilog construct that explicitly models a flip-flop (sequential logic). The `@(posedge clk)` means "trigger on the rising clock edge". Synthesis tools use this to infer actual flip-flop primitives.
+**`always_ff @(posedge clk)`** - This is the key construct. `always_ff` explicitly models a flip-flop (sequential logic). The `@(posedge clk)` means "trigger on the rising clock edge". Synthesis tools use this to infer actual flip-flop primitives on an FPGA or ASIC.
 
-**`if (load) out <= in`** — The non-blocking assignment `<=` (vs. blocking `=`) is critical in sequential blocks. All non-blocking assignments evaluate their right-hand sides *first*, then update their targets simultaneously. This is how hardware actually works: all flip-flops in the chip update at the same instant on the clock edge.
+**`if (load) out <= in`** - The non-blocking assignment `<=` (as opposed to blocking `=`) is critical in sequential blocks. All non-blocking assignments evaluate their right-hand sides *first*, then update their targets simultaneously. This is how hardware actually works: all flip-flops on the chip update at the same instant on the clock edge.
 
-**`initial out = 16'h0000`** — Sets the simulation starting value to 0. In real hardware, flip-flops power up to an undefined state, but for simulation this gives us a clean baseline.
+**`initial out = 16'h0000`** - Sets the simulation starting value to 0. In real hardware, flip-flops power up to an undefined state, but for simulation this gives us a clean baseline.
 
-### What happens without a reset?
+### What about reset?
 
-You might notice there's no reset signal. For simulation purposes, `initial` handles the starting state. If we were targeting an FPGA, we'd add a synchronous reset:
+There is no reset signal here. For simulation, `initial` handles the starting state. If targeting an FPGA, we would add a synchronous reset:
 
 ```systemverilog
 always_ff @(posedge clk) begin
@@ -136,110 +110,139 @@ always_ff @(posedge clk) begin
 end
 ```
 
-We'll add this when we integrate into the full CPU. For now, keep it simple.
+We add this when we integrate into the full CPU. For now, keep it simple.
 
----
+## Test
 
-## Testing It
-
-Good hardware design is test-driven. Before you can trust a component, you need a testbench that proves it works.
-
-Here's the full testbench (`tb_register.sv`):
+The testbench proves the register works by testing every edge case: hold on load=0, latch on load=1, overwrite, and hold across multiple clock ticks.
 
 ```systemverilog
 `timescale 1ns/1ps
 
 module tb_register;
+
     logic        clk;
     logic        load;
     logic [15:0] in;
     logic [15:0] out;
 
-    // Instantiate the device under test
     register dut (.clk(clk), .load(load), .in(in), .out(out));
 
-    // 10ns clock (100 MHz)
     initial clk = 0;
     always #5 clk = ~clk;
 
-    initial begin
-        load = 0; in = 16'h0000;
+    task tick;
+        input [15:0] expected;
+        input [63:0] test_num;
+        input [127:0] description;
+        begin
+            @(posedge clk);
+            #1;
+            if (out === expected)
+                $display("[PASS] Test %0d: %s -> out=0x%04X", test_num, description, out);
+            else begin
+                $display("[FAIL] Test %0d: %s -> expected=0x%04X, got=0x%04X",
+                         test_num, description, expected, out);
+                $finish(1);
+            end
+        end
+    endtask
 
-        // Test 1: load=0 should hold initial value
+    integer pass_count;
+
+    initial begin
+        pass_count = 0;
+        load = 0;
+        in   = 16'h0000;
+
+        // Test 1: load=0 holds initial value
         load = 0; in = 16'hDEAD;
-        @(posedge clk); #1;
-        assert(out === 16'h0000) else $fatal("Test 1 FAIL");
-        $display("[PASS] load=0 holds initial 0x0000");
+        tick(16'h0000, 1, "load=0: holds initial 0x0000");
+        pass_count++;
 
         // Test 2: load=1 latches
         load = 1; in = 16'hABCD;
-        @(posedge clk); #1;
-        assert(out === 16'hABCD) else $fatal("Test 2 FAIL");
-        $display("[PASS] load=1 latches 0xABCD");
+        tick(16'hABCD, 2, "load=1: latches 0xABCD");
+        pass_count++;
 
-        // Test 3: load=0 holds the latched value
+        // Test 3: load=0 holds latched value
         load = 0; in = 16'hFFFF;
-        @(posedge clk); #1;
-        assert(out === 16'hABCD) else $fatal("Test 3 FAIL");
-        $display("[PASS] load=0 holds 0xABCD");
+        tick(16'hABCD, 3, "load=0: holds 0xABCD");
+        pass_count++;
 
-        // Test 4: overwrite with a new value
+        // Test 4: load=1 overwrites
+        load = 1; in = 16'h1234;
+        tick(16'h1234, 4, "load=1: latches 0x1234");
+        pass_count++;
+
+        // Test 5: consecutive load
         load = 1; in = 16'h5678;
-        @(posedge clk); #1;
-        assert(out === 16'h5678) else $fatal("Test 4 FAIL");
-        $display("[PASS] load=1 overwrites to 0x5678");
+        tick(16'h5678, 5, "load=1: overwrites to 0x5678");
+        pass_count++;
 
-        $display("All tests passed.");
+        // Test 6: hold across multiple ticks
+        load = 0; in = 16'hBEEF;
+        @(posedge clk); #1;
+        @(posedge clk); #1;
+        @(posedge clk); #1;
+        if (out === 16'h5678)
+            $display("[PASS] Test 6: load=0: holds 0x5678 across 3 ticks");
+        else begin
+            $display("[FAIL] Test 6: expected 0x5678, got 0x%04X", out);
+            $finish(1);
+        end
+        pass_count++;
+
+        $display("All %0d tests passed.", pass_count);
         $finish;
     end
+
+    initial begin
+        #1000;
+        $display("[ERROR] Simulation timeout");
+        $finish(1);
+    end
+
 endmodule
 ```
 
 ### Running it
 
 ```bash
-# From the 01-registers/ directory
-iverilog -g2012 -o tb_register tb/tb_register.sv rtl/register.sv && vvp tb_register
+iverilog -g2012 -o tb_register 01-registers/tb/tb_register.sv 01-registers/rtl/register.sv && vvp tb_register
 ```
 
-Output:
+Expected output:
 
 ```
-[PASS] load=0 holds initial 0x0000
-[PASS] load=1 latches 0xABCD
-[PASS] load=0 holds 0xABCD
-[PASS] load=1 overwrites to 0x5678
-All tests passed.
+[PASS] Test 1: load=0: holds initial 0x0000 -> out=0x0000
+[PASS] Test 2: load=1: latches 0xABCD -> out=0xABCD
+[PASS] Test 3: load=0: holds 0xABCD -> out=0xABCD
+[PASS] Test 4: load=1: latches 0x1234 -> out=0x1234
+[PASS] Test 5: load=1: overwrites to 0x5678 -> out=0x5678
+[PASS] Test 6: load=0: holds 0x5678 across 3 ticks
+All 6 tests passed.
 ```
 
-Green across the board. The register works exactly as specified.
+## Interactive Demo
 
----
+**-> [Open the Register Demo](https://kiki-pi-one.vercel.app/registers)**
 
-## Try It Yourself
-
-I built an interactive web demo where you can click individual bits, toggle the load signal, and step through clock cycles to watch the register hold and latch in real time.
-
-**→ [Open the Register Demo](https://kiki-pi-one.vercel.app/registers)**
-
-The demo runs the same logic as the SystemVerilog implementation, just written in TypeScript so it runs in your browser:
+The demo runs the same logic as the SystemVerilog, written in TypeScript so it runs in your browser:
 
 ```typescript
-// register.ts — mirrors register.sv exactly
-export function tickRegister(state: RegisterState, input: { in: number, load: 0 | 1 }): RegisterState {
-  return {
-    out: input.load ? input.in & 0xFFFF : state.out
-  }
+// register.ts - mirrors register.sv exactly
+export function tickRegister(state: RegisterState, inputs: RegisterInputs): RegisterState {
+  const newOut = inputs.load ? inputs.in & 0xFFFF : state.out;
+  return { out: newOut };
 }
 ```
 
-Same interface, same behaviour, two different implementations. One compiles to hardware; one runs in Chrome.
-
----
+Same interface, same behaviour. One compiles to hardware; one runs in Chrome.
 
 ## Where This Is Used
 
-In the final CPU, we'll have two register instances:
+In the final CPU, we instantiate two registers:
 
 ```systemverilog
 // Inside cpu.sv (Part 5)
@@ -250,20 +253,18 @@ register reg_D (.clk(clk), .load(load_D), .in(alu_out),  .out(D));
 - **Register A** holds addresses and constants, feeds into the ALU as operand Y, and doubles as the jump target for the PC
 - **Register D** is the general data register and the primary ALU operand X
 
-The `load` signal for each is decoded from the instruction's destination bits, specifically the `ddd` field we defined in the ISA spec.
-
----
+The `load` signal for each register is decoded from the instruction's destination bits - the `ddd` field we defined in the ISA spec.
 
 ## What's Next
 
 We have storage. Now we need computation.
 
-In **Part 2**, we build the **ALU (Arithmetic Logic Unit)**, the component that does all the actual math. We'll see how 6 control bits can select between 28 different operations, and work through the trick behind the `D+1` operation that would look like magic without the explanation.
+In **Part 2**, we build the **ALU (Arithmetic Logic Unit)** - the component that does all the actual math. We will see how 6 control bits select between 28 different operations, and work through the trick behind the `D+1` operation.
 
-**[Part 2: The ALU →](./02-alu.md)**
+[Part 2: The ALU ->](./02-alu.md)
 
 ---
 
-*[← Part 0: The ISA](./00-isa-spec.md)*
+*[<- Part 0: The ISA](./00-isa-spec.md)*
 *[KiKi-Pi-One on GitHub](https://github.com/SreejitS/KiKi-Pi-One)*
 *[Live Demo](https://kiki-pi-one.vercel.app/registers)*

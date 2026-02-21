@@ -89,6 +89,30 @@ Every article must follow this exact structure in order:
 - Code blocks use triple backticks with language tag: ```systemverilog, ```typescript, ```asm
 - Tables use standard markdown pipe format
 
+### ASCII Art Diagrams
+
+ASCII diagrams in code blocks must be **column-aligned** so every vertical relationship is visually obvious in a monospace font. Rules:
+
+1. **Use `|` pipes as vertical tracers** from a value down to its label - never rely on position alone
+2. **Use `+---+` brackets** to span a range of columns, with `+` directly under the first and last column
+3. **Count characters** - every column is a fixed width (typically 3 chars per bit). Verify alignment by counting positions, not eyeballing
+4. **Avoid `^` carets for alignment** - they are ambiguous. Use `|` pipes instead
+5. **Test in a monospace font** before committing - paste into a terminal or code editor and confirm vertical lines are straight
+
+Good example:
+```
+  1  1  1  0  0  0  0  0  1  0  0  1  0  0  0  0
+  |  |  |  |  |           |  |     |  |        |
+  C  1  1  a  +--- comp --+  +dest-+  +-jump --+
+```
+
+Bad example (carets don't clearly trace to bits):
+```
+  1  1  1  0  0  0  0  0  1  0  0  1  0  0  0  0
+  ^  ^  ^  ^  +----------+  +------+  +------+
+  C  1  1  a    c1-c6 (D+A)   dest=D    jump=null
+```
+
 ### What NOT to include
 
 - Do not repeat the article title as an H1 in the body - WordPress/Medium show the title from frontmatter
