@@ -41,10 +41,15 @@ EDITOR_URLS = {
 
 
 def load_article(path: str) -> tuple[frontmatter.Post, str]:
-    """Load a markdown file, return (post, html_body)."""
+    """Load a markdown file, return (post, html_body).
+    Strips the first H1 from the body — the platform title field handles it."""
+    import re
     post = frontmatter.load(path)
+    # Remove the first H1 line from markdown before converting
+    # (WordPress/Medium show the title from frontmatter, so H1 in body duplicates it)
+    content = re.sub(r'^\s*#\s+.+\n', '', post.content, count=1)
     html = markdown.markdown(
-        post.content,
+        content,
         extensions=["tables", "fenced_code", "toc"],
     )
     return post, html
