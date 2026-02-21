@@ -19,3 +19,6 @@ a.out
 __pycache__/
 *.pyc
 tools/__pycache__/
+
+# Local planning/context (not for git)
+specs/
