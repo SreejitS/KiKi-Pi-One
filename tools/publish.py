@@ -20,7 +20,7 @@ After running:
   - WordPress: paste into Gutenberg editor (it accepts formatted HTML)
 
 Dependencies:
-    pip install python-frontmatter markdown
+    pip install python-frontmatter markdown pygments
 """
 
 import argparse
@@ -32,12 +32,161 @@ from pathlib import Path
 
 import frontmatter
 import markdown
+from pygments.formatters import HtmlFormatter
 
 
 EDITOR_URLS = {
     "medium": "https://medium.com/new-story",
     "wordpress": "https://sreejits.com/wp-admin/post-new.php",
 }
+
+# Generate Pygments syntax highlighting CSS (monokai theme, scoped)
+_PYGMENTS_CSS = HtmlFormatter(style='monokai').get_style_defs('.kiki-article .codehilite')
+
+WORDPRESS_STYLE = """\
+<style>
+  .kiki-article {
+    font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    line-height: 1.75;
+    color: #1a1a2e;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  .kiki-article h2 {
+    font-size: 1.6em;
+    font-weight: 700;
+    margin: 2.5rem 0 1rem;
+    color: #1a1a2e;
+  }
+  .kiki-article h3 {
+    font-size: 1.2em;
+    font-weight: 600;
+    margin: 2rem 0 0.75rem;
+    color: #1a1a2e;
+  }
+  .kiki-article p {
+    margin: 1rem 0;
+  }
+  .kiki-article a {
+    color: #6366f1;
+    text-decoration: none;
+  }
+  .kiki-article a:hover {
+    text-decoration: underline;
+  }
+  .kiki-article hr {
+    border: none;
+    border-top: 1px solid #e2e8f0;
+    margin: 2.5rem auto;
+    max-width: 80%;
+  }
+  .kiki-article blockquote {
+    border-left: 3px solid #6366f1;
+    margin: 1.5rem 0;
+    padding: 0.5rem 0 0.5rem 1.25rem;
+    color: #475569;
+    font-style: italic;
+  }
+  .kiki-article blockquote p {
+    margin: 0.5rem 0;
+  }
+  .kiki-article ol, .kiki-article ul {
+    margin: 1rem 0;
+    padding-left: 1.75rem;
+  }
+  .kiki-article li {
+    margin: 0.4rem 0;
+  }
+  /* --- Tables --- */
+  .kiki-article table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 0.92em;
+  }
+  .kiki-article th {
+    background: #f8fafc;
+    font-weight: 600;
+    text-align: left;
+    padding: 10px 14px;
+    border: 1px solid #e2e8f0;
+  }
+  .kiki-article td {
+    padding: 9px 14px;
+    border: 1px solid #e2e8f0;
+    text-align: left;
+  }
+  .kiki-article tbody tr:nth-child(even) {
+    background: #f8fafc;
+  }
+  /* --- Code blocks (codehilite wrapper from Pygments) --- */
+  .kiki-article .codehilite {
+    margin: 1.5rem 0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .kiki-article .codehilite pre {
+    margin: 0;
+    padding: 1.25rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    font-size: 0.88em;
+    line-height: 1.6;
+    font-family: 'SF Mono', 'Fira Code', Consolas, 'Courier New', monospace;
+    font-variant-ligatures: none;
+    -webkit-font-smoothing: antialiased;
+  }
+  .kiki-article .codehilite pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    color: inherit;
+    font-size: inherit;
+    font-family: inherit;
+  }
+  /* Fallback for any <pre> not inside codehilite */
+  .kiki-article pre {
+    background: #272822;
+    color: #F8F8F2;
+    padding: 1.25rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 1.5rem 0;
+    font-size: 0.88em;
+    line-height: 1.6;
+    font-family: 'SF Mono', 'Fira Code', Consolas, 'Courier New', monospace;
+    font-variant-ligatures: none;
+    -webkit-font-smoothing: antialiased;
+  }
+  .kiki-article pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    color: inherit;
+    font-family: inherit;
+  }
+  /* Inline code */
+  .kiki-article code {
+    font-family: 'SF Mono', 'Fira Code', Consolas, 'Courier New', monospace;
+    font-variant-ligatures: none;
+    background: #f1f5f9;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+    color: #1e293b;
+  }
+  .kiki-article strong {
+    font-weight: 600;
+    color: #0f172a;
+  }
+  /* --- Pygments syntax highlighting --- */
+  """ + _PYGMENTS_CSS + """
+</style>"""
+
+
+def wrap_for_wordpress(html: str) -> str:
+    """Wrap article HTML in a styled container for WordPress Custom HTML blocks."""
+    return f'<div class="kiki-article">\n{WORDPRESS_STYLE}\n{html}\n</div>'
 
 
 def load_article(path: str) -> tuple[frontmatter.Post, str]:
@@ -50,7 +199,14 @@ def load_article(path: str) -> tuple[frontmatter.Post, str]:
     content = re.sub(r'^\s*#\s+.+\n', '', post.content, count=1)
     html = markdown.markdown(
         content,
-        extensions=["tables", "fenced_code", "toc"],
+        extensions=["tables", "fenced_code", "codehilite", "toc"],
+        extension_configs={
+            "codehilite": {
+                "css_class": "codehilite",
+                "guess_lang": False,
+                "noclasses": False,
+            }
+        },
     )
     return post, html
 
@@ -97,16 +253,19 @@ def prepare_for(target: str, post: frontmatter.Post, html: str):
     title = post.get("title", "Untitled")
     tags  = post.get("tags", [])
 
+    # WordPress gets styled wrapper; Medium gets plain HTML
+    output_html = wrap_for_wordpress(html) if target == "wordpress" else html
+
     print(f"\n── {target.upper()} ─────────────────────────────")
     print(f"  Title : {title}")
     print(f"  Tags  : {', '.join(tags)}")
 
-    # Save HTML to temp file
-    html_path = save_html(html, title)
+    # Save HTML to temp file (preview reflects target styling)
+    html_path = save_html(output_html, title)
     print(f"  HTML  : {html_path}")
 
     # Copy to clipboard
-    copied = copy_to_clipboard(html)
+    copied = copy_to_clipboard(output_html)
     if copied:
         print("  ✓ HTML copied to clipboard — ready to paste")
     else:

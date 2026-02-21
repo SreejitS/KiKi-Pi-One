@@ -1,11 +1,16 @@
 ---
-title: "Part 2: The ALU - Building KiKi-Pi-One's Arithmetic Logic Unit"
-series: "KiKi-Pi-One"
+medium_url: ''
 part: 2
-tags: ["cpu-design", "hardware", "systemverilog", "alu", "kiki-pi-one"]
-medium_url: ""
-wordpress_url: ""
-status: draft
+series: KiKi-Pi-One
+status: ready
+tags:
+- cpu-design
+- hardware
+- systemverilog
+- alu
+- kiki-pi-one
+title: 'Part 2: The ALU - Building KiKi-Pi-One''s Arithmetic Logic Unit'
+wordpress_url: ''
 ---
 
 # Part 2: The ALU
@@ -28,15 +33,16 @@ The interesting part: a single ALU with just **6 control bits** can produce **28
 Unlike the register from Part 1, the ALU has no clock. It is purely **combinational**: the output updates immediately whenever any input changes. No rising edge, no wait.
 
 ```
-     ┌──────────────────────────────────────┐
-  x  │16                                    │ 16
-────▶│                                      │────▶ out
-  y  │16             ALU                    │
-────▶│                                      │────▶ zr
-     │                                      │
-  zx │  zy │  f  │                          │────▶ ng
-  nx │  ny │  no │                          │
-─────┴──────┴─────┴──────────────────────────┘
+     ┌─────────────────────────┐
+  x  │16                       │ 16
+────▶│                         │────▶ out
+     │                         │
+  y  │16         ALU           │────▶ zr
+────▶│                         │
+     │                         │────▶ ng
+     └────────────┬────────────┘
+                  │
+           zx nx zy ny f no
 ```
 
 | Port | Width | Description |
