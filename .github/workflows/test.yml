@@ -1,0 +1,33 @@
+name: Run Testbenches
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Icarus Verilog
+        run: sudo apt-get install -y iverilog
+
+      - name: Run register testbench
+        run: |
+          iverilog -g2012 -o tb_register \
+            01-registers/tb/tb_register.sv \
+            01-registers/rtl/register.sv \
+          && vvp tb_register
+
+      # Add new testbench steps here as components are implemented:
+      # - name: Run ALU testbench
+      #   run: |
+      #     iverilog -g2012 -o tb_alu \
+      #       02-alu/tb/tb_alu.sv \
+      #       02-alu/rtl/alu.sv \
+      #     && vvp tb_alu

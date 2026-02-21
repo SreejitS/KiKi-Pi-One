@@ -1,94 +1,128 @@
 # KiKi-Pi-One
-# 16-Bit CPU Design and Simulation Project
 
-## Overview
+A 16-bit CPU designed and built from scratch — hardware in SystemVerilog, simulated in the browser.
 
-Welcome to the KiKi-Pi-One project! This project aims to provide a comprehensive understanding of computer architecture by designing a 16-bit Central Processing Unit (CPU) and simulating it using Logisim Evolution, a powerful digital logic simulator.
+[![Tests](https://github.com/SreejitS/KiKi-Pi-One/actions/workflows/test.yml/badge.svg)](https://github.com/SreejitS/KiKi-Pi-One/actions/workflows/test.yml)
 
-## Table of Contents
-
-- [Introduction](#introduction)
-- [Features](#features)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-- [Project Structure](#project-structure)
-- [Simulation](#simulation)
-- [Documentation](#documentation)
-- [Contributing](#contributing)
-- [License](#license)
-- [Acknowledgments](#acknowledgments)
-
-## Introduction
-
-In this project, we have designed a 16-bit CPU architecture, taking into consideration various aspects of computer organization and design. The CPU is implemented in Logisim, a graphical tool for designing and simulating digital circuits.
-
-## Features
-
-- 16-bit instruction set architecture
-- ALU (Arithmetic Logic Unit)
-- Control Unit
-- Register File
-- Memory Unit
-- Clock and Reset handling
-
-## Getting Started
-
-### Prerequisites
-
-Before running the simulation, make sure you have the following installed:
-
-- Logisim Evolution v3.8.0: [Download Logisim Evolution](https://github.com/logisim-evolution/logisim-evolution/releases/tag/v3.8.0)
-
-
-### Installation
-
-1. Clone the repository:
-
-   ```bash
-   git clone https://github.com/SreejitS/KiKi-Pi-One.git
-   ```
-
-2. Open Logisim and load the CPU circuit file:
-
-   ```
-   /Logisim-Evolution/KiKi_Pi_One.circ
-   ```
-
-## Project Structure
-
-The project is organized as follows:
-
-- `Logisim-Evolution/KiKi_Pi_One.circ`: Logisim circuit file for the 16-bit CPU.
-- `Docs/`: Documentation for the projecs, use [draw.io](draw.io) to view the system diagram.
-
-## Simulation
-
-1. Open Logisim and load the CPU circuit file.
-
-2. Simulate the CPU by clicking on the "Simulate" button.
-
-3. Use Logisim's interface to observe the CPU's behavior, including register values, memory access, and instruction execution.
-
-## Documentation
-
-Detailed documentation for the CPU design, architecture, and implementation can be found in the `docs/` directory. This includes information on the instruction set, register layout, and the overall design philosophy.
-
-## Contributing
-
-If you would like to contribute to this project, please follow the [contribution guidelines](CONTRIBUTING.md).
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- 100% credit goes to [Nand2Tetris](https://www.coursera.org/learn/build-a-computer)
-- The project was inspired by the desire to create a hands-on learning experience for computer architecture enthusiasts.
-- Special thanks to the Logisim development team for providing a powerful simulation tool.
-- Check out our [Medium article](https://medium.com/@iamsreejits/project-kickoff-kiki-pi-one-521664ec1b6d) for a detailed walkthrough of the project.
+> **Series:** [Medium](https://medium.com/@iamsreejits) · [sreejits.com](https://sreejits.com) · [Live Demo](https://kiki-pi-one.vercel.app)
 
 ---
 
-Happy coding!
+## Architecture
+
+```mermaid
+graph TD
+    ROM["ROM\n(Instruction Memory)"] -->|instruction| CPU
+    CPU -->|address| RAM["RAM\n(Data Memory)"]
+    RAM -->|in M| CPU
+    CPU -->|pc| ROM
+
+    subgraph CPU
+        PC["Program\nCounter"]
+        AREG["A Register"]
+        DREG["D Register"]
+        ALU["ALU"]
+        PC -->|ROM address| ROM
+        AREG --> ALU
+        DREG --> ALU
+        ALU --> AREG
+        ALU --> DREG
+        ALU -->|write M| RAM
+    end
+```
+
+---
+
+## Article Series
+
+| Part | Title | Code | Article | Demo |
+|---|---|---|---|---|
+| 0 | The ISA Specification | [00-spec/ISA.md](00-spec/ISA.md) | [Medium]() · [Blog]() | — |
+| 1 | The Register | [01-registers/](01-registers/) | [Medium]() · [Blog]() | [Live Demo](https://kiki-pi-one.vercel.app/registers) |
+| 2 | The ALU | [02-alu/](02-alu/) | — | — |
+| 3 | Data Memory | [03-memory/](03-memory/) | — | — |
+| 4 | Program Counter | [04-pc/](04-pc/) | — | — |
+| 5 | The CPU | [05-cpu/](05-cpu/) | — | — |
+| 6 | The Computer | [06-computer/](06-computer/) | — | — |
+| 7 | The Assembler | [07-assembler/](07-assembler/) | — | — |
+
+---
+
+## Repository Structure
+
+```
+kiki-pi-one/
+├── 00-spec/         ← ISA reference — the source of truth for everything
+├── 01-registers/    ← Register (rtl/, tb/, README.md)
+├── 02-alu/          ← ALU
+├── 03-memory/       ← Data Memory
+├── 04-pc/           ← Program Counter
+├── 05-cpu/          ← CPU
+├── 06-computer/     ← Top-level Computer
+├── 07-assembler/    ← Python assembler
+├── 08-web-demo/     ← Next.js interactive simulator
+├── logisim/         ← Original Logisim Evolution circuit (preserved)
+├── articles/        ← Markdown article drafts (published to Medium + WordPress)
+└── tools/           ← publish.py — dual-publish articles
+```
+
+---
+
+## Getting Started
+
+### Running testbenches
+
+```bash
+# Install Icarus Verilog
+brew install icarus-verilog        # macOS
+sudo apt install iverilog          # Ubuntu/Debian
+
+# Run the register testbench
+iverilog -g2012 -o tb_register \
+  01-registers/tb/tb_register.sv \
+  01-registers/rtl/register.sv \
+&& vvp tb_register
+```
+
+### Running the web demo locally
+
+```bash
+cd 08-web-demo
+npm install
+npm run dev
+# Open http://localhost:3000
+```
+
+### Publishing articles
+
+```bash
+pip install python-frontmatter requests markdown python-dotenv
+cp .env.example .env   # fill in your tokens
+python tools/publish.py articles/00-isa-spec.md --target both --dry-run
+python tools/publish.py articles/00-isa-spec.md --target both
+```
+
+---
+
+## ISA at a Glance
+
+Two instruction types:
+
+```
+A-instruction:  0 vvvvvvvvvvvvvvv   → A = 15-bit value
+C-instruction:  111 a cccccc ddd jjj → compute / store / jump
+```
+
+Full specification: [00-spec/ISA.md](00-spec/ISA.md)
+
+---
+
+## Inspiration
+
+- [Nand2Tetris](https://www.nand2tetris.org/) — the HACK architecture this is based on
+- MIT 6.004 Computation Structures
+- Logisim Evolution — used for the original visual prototype
+
+## License
+
+MIT — see [LICENSE.md](LICENSE.md)

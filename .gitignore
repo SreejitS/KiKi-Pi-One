@@ -1,0 +1,21 @@
+# Credentials
+.env
+
+# Icarus Verilog compiled outputs (binaries, not source)
+tb_register
+tb_alu
+tb_data_memory
+tb_pc
+tb_cpu
+tb_computer
+a.out
+*.vcd
+
+# Node
+08-web-demo/node_modules/
+08-web-demo/.next/
+
+# Python
+__pycache__/
+*.pyc
+tools/__pycache__/
