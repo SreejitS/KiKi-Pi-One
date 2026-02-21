@@ -1,11 +1,16 @@
 ---
-title: "Part 0: The Instruction Set Architecture — Designing KiKi-Pi-One's ISA"
-series: "KiKi-Pi-One"
+medium_url: ''
 part: 0
-tags: ["cpu-design", "computer-architecture", "hardware", "isa", "kiki-pi-one"]
-medium_url: ""
-wordpress_url: ""
-status: draft
+series: KiKi-Pi-One
+status: ready
+tags:
+- cpu-design
+- computer-architecture
+- hardware
+- isa
+- kiki-pi-one
+title: 'Part 0: The Instruction Set Architecture — Designing KiKi-Pi-One''s ISA'
+wordpress_url: ''
 ---
 
 # Part 0: The Instruction Set Architecture

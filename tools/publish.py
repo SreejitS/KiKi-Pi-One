@@ -1,183 +1,150 @@
 #!/usr/bin/env python3
 """
-publish.py — Dual-publish Markdown articles to Medium and WordPress
+publish.py — Article publishing helper for KiKi-Pi-One
+
+Since Medium removed their API and WordPress is behind Mod_Security,
+this script prepares the article for manual pasting:
+
+  1. Converts Markdown → clean HTML
+  2. Saves the HTML to a temp file
+  3. Copies the content to clipboard
+  4. Opens the target editor in your browser
 
 Usage:
     python tools/publish.py articles/00-isa-spec.md --target medium
     python tools/publish.py articles/01-registers.md --target wordpress
     python tools/publish.py articles/01-registers.md --target both
-    python tools/publish.py articles/01-registers.md --target both --dry-run
 
-Environment variables (store in .env, never commit):
-    MEDIUM_TOKEN        — Medium integration token
-                          Get from: https://medium.com/me/settings → Integration tokens
-    WP_URL              — WordPress site URL, e.g. https://sreejits.com
-    WP_USER             — WordPress username
-    WP_APP_PASSWORD     — WordPress Application Password
-                          Get from: WP Admin → Users → Profile → Application Passwords
+After running:
+  - Medium:    paste into editor at medium.com/new-story
+  - WordPress: paste into Gutenberg editor (it accepts formatted HTML)
 
 Dependencies:
-    pip install python-frontmatter requests markdown python-dotenv
+    pip install python-frontmatter markdown
 """
 
 import argparse
-import json
-import os
+import subprocess
 import sys
+import tempfile
+import webbrowser
 from pathlib import Path
 
 import frontmatter
 import markdown
-import requests
-from dotenv import load_dotenv
-
-load_dotenv()
 
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
+EDITOR_URLS = {
+    "medium": "https://medium.com/new-story",
+    "wordpress": "https://sreejits.com/wp-admin/post-new.php",
+}
+
 
 def load_article(path: str) -> tuple[frontmatter.Post, str]:
     """Load a markdown file, return (post, html_body)."""
     post = frontmatter.load(path)
     html = markdown.markdown(
         post.content,
-        extensions=["tables", "fenced_code", "codehilite", "toc"],
+        extensions=["tables", "fenced_code", "toc"],
     )
     return post, html
 
 
-def update_frontmatter(path: str, key: str, value: str):
-    """Write a URL back into the article frontmatter after publishing."""
+def copy_to_clipboard(text: str):
+    """Copy text to system clipboard (macOS/Linux)."""
+    try:
+        subprocess.run("pbcopy", input=text.encode(), check=True)   # macOS
+        return True
+    except FileNotFoundError:
+        try:
+            subprocess.run(["xclip", "-selection", "clipboard"],
+                           input=text.encode(), check=True)          # Linux
+            return True
+        except FileNotFoundError:
+            return False
+
+
+def save_html(html: str, title: str) -> str:
+    """Save HTML to a temp file and return its path."""
+    safe_title = title.lower().replace(" ", "-").replace("/", "-")[:40]
+    path = Path(tempfile.gettempdir()) / f"kiki-pi-one-{safe_title}.html"
+    full_html = f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>{title}</title></head>
+<body>
+{html}
+</body></html>"""
+    path.write_text(full_html)
+    return str(path)
+
+
+def update_frontmatter_status(path: str):
+    """Mark article as 'ready' in frontmatter."""
     post = frontmatter.load(path)
-    post[key] = value
-    with open(path, "wb") as f:
-        frontmatter.dump(post, f)
-    print(f"  Updated {key} in {path}")
+    if post.get("status") == "draft":
+        post["status"] = "ready"
+        with open(path, "wb") as f:
+            frontmatter.dump(post, f)
+        print(f"  Marked as 'ready' in frontmatter")
 
 
-# ── Medium ───────────────────────────────────────────────────────────────────
+def prepare_for(target: str, post: frontmatter.Post, html: str):
+    """Prepare and open a single target."""
+    title = post.get("title", "Untitled")
+    tags  = post.get("tags", [])
 
-def publish_to_medium(post: frontmatter.Post, html: str, dry_run: bool) -> str | None:
-    """Publish to Medium via the v1 API. Returns the published URL."""
-    token = os.getenv("MEDIUM_TOKEN")
-    if not token:
-        print("[ERROR] MEDIUM_TOKEN not set in environment")
-        sys.exit(1)
+    print(f"\n── {target.upper()} ─────────────────────────────")
+    print(f"  Title : {title}")
+    print(f"  Tags  : {', '.join(tags)}")
 
-    # Get the author's user ID
-    me = requests.get(
-        "https://api.medium.com/v1/me",
-        headers={"Authorization": f"Bearer {token}"},
-        timeout=10,
-    )
-    me.raise_for_status()
-    author_id = me.json()["data"]["id"]
+    # Save HTML to temp file
+    html_path = save_html(html, title)
+    print(f"  HTML  : {html_path}")
 
-    payload = {
-        "title": post.get("title", "Untitled"),
-        "contentFormat": "html",
-        "content": html,
-        "tags": post.get("tags", [])[:5],  # Medium allows max 5 tags
-        "publishStatus": "draft",  # always draft first — review before publishing
-    }
+    # Copy to clipboard
+    copied = copy_to_clipboard(html)
+    if copied:
+        print("  ✓ HTML copied to clipboard — ready to paste")
+    else:
+        print("  ✗ Clipboard copy failed — open the HTML file manually")
 
-    if dry_run:
-        print("[DRY RUN] Medium payload:")
-        print(json.dumps(payload, indent=2))
-        return None
+    # Open editor in browser
+    url = EDITOR_URLS.get(target)
+    if url:
+        webbrowser.open(url)
+        print(f"  ✓ Opened {url}")
 
-    resp = requests.post(
-        f"https://api.medium.com/v1/users/{author_id}/posts",
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        },
-        json=payload,
-        timeout=15,
-    )
-    resp.raise_for_status()
-    url = resp.json()["data"]["url"]
-    print(f"[Medium] Draft created: {url}")
-    return url
+    # Target-specific instructions
+    if target == "medium":
+        print("""
+  Paste steps (Medium):
+    1. Editor is now open in your browser
+    2. Click the title area → type/paste the title
+    3. Click the body → Cmd+V to paste
+    4. Add the tags shown above manually
+    5. Click Publish when ready
+""")
+    elif target == "wordpress":
+        print("""
+  Paste steps (WordPress):
+    1. Editor is now open in your browser
+    2. Click the title field → type/paste the title
+    3. In the body: click the + block → choose "Custom HTML" block → paste
+       (or switch to Code Editor view: Ctrl+Shift+Alt+M)
+    4. Add tags in the right sidebar
+    5. Click Publish / Save Draft when ready
+""")
 
-
-# ── WordPress ─────────────────────────────────────────────────────────────────
-
-def publish_to_wordpress(post: frontmatter.Post, html: str, dry_run: bool) -> str | None:
-    """Publish to WordPress via the REST API. Returns the post URL."""
-    wp_url = os.getenv("WP_URL", "").rstrip("/")
-    wp_user = os.getenv("WP_USER")
-    wp_password = os.getenv("WP_APP_PASSWORD")
-
-    if not all([wp_url, wp_user, wp_password]):
-        print("[ERROR] WP_URL, WP_USER, WP_APP_PASSWORD must all be set")
-        sys.exit(1)
-
-    payload = {
-        "title": post.get("title", "Untitled"),
-        "content": html,
-        "status": "draft",  # always draft first
-        "tags": _get_wp_tag_ids(wp_url, wp_user, wp_password, post.get("tags", [])),
-    }
-
-    if dry_run:
-        print("[DRY RUN] WordPress payload:")
-        print(json.dumps({**payload, "tags": post.get("tags", [])}, indent=2))
-        return None
-
-    resp = requests.post(
-        f"{wp_url}/wp-json/wp/v2/posts",
-        auth=(wp_user, wp_password),
-        json=payload,
-        timeout=15,
-    )
-    resp.raise_for_status()
-    url = resp.json()["link"]
-    print(f"[WordPress] Draft created: {url}")
-    return url
-
-
-def _get_wp_tag_ids(wp_url: str, user: str, password: str, tag_names: list[str]) -> list[int]:
-    """Resolve tag names to WordPress tag IDs, creating tags that don't exist."""
-    ids = []
-    for name in tag_names:
-        # Search for existing tag
-        search = requests.get(
-            f"{wp_url}/wp-json/wp/v2/tags",
-            auth=(user, password),
-            params={"search": name},
-            timeout=10,
-        )
-        results = search.json()
-        if results:
-            ids.append(results[0]["id"])
-        else:
-            # Create it
-            create = requests.post(
-                f"{wp_url}/wp-json/wp/v2/tags",
-                auth=(user, password),
-                json={"name": name},
-                timeout=10,
-            )
-            ids.append(create.json()["id"])
-    return ids
-
-
-# ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
-    parser = argparse.ArgumentParser(description="Publish article to Medium and/or WordPress")
+    parser = argparse.ArgumentParser(
+        description="Prepare a KiKi-Pi-One article for publishing"
+    )
     parser.add_argument("article", help="Path to the article markdown file")
     parser.add_argument(
         "--target",
         choices=["medium", "wordpress", "both"],
-        required=True,
-        help="Publishing target",
-    )
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Print the payload without actually publishing",
+        default="both",
+        help="Publishing target (default: both)",
     )
     args = parser.parse_args()
 
@@ -189,20 +156,12 @@ def main():
     print(f"Loading {path}...")
     post, html = load_article(str(path))
 
-    print(f"Title: {post.get('title', '(no title)')}")
-    print(f"Status in file: {post.get('status', 'draft')}")
+    targets = ["medium", "wordpress"] if args.target == "both" else [args.target]
+    for target in targets:
+        prepare_for(target, post, html)
 
-    if args.target in ("medium", "both"):
-        url = publish_to_medium(post, html, args.dry_run)
-        if url and not args.dry_run:
-            update_frontmatter(str(path), "medium_url", url)
-
-    if args.target in ("wordpress", "both"):
-        url = publish_to_wordpress(post, html, args.dry_run)
-        if url and not args.dry_run:
-            update_frontmatter(str(path), "wordpress_url", url)
-
-    print("Done.")
+    update_frontmatter_status(str(path))
+    print("\nDone. Paste the content and publish!")
 
 
 if __name__ == "__main__":
