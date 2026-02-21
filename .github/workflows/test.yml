@@ -24,10 +24,11 @@ jobs:
             01-registers/rtl/register.sv \
           && vvp tb_register
 
+      - name: Run ALU testbench
+        run: |
+          iverilog -g2012 -o tb_alu \
+            02-alu/tb/tb_alu.sv \
+            02-alu/rtl/alu.sv \
+          && vvp tb_alu
+
       # Add new testbench steps here as components are implemented:
-      # - name: Run ALU testbench
-      #   run: |
-      #     iverilog -g2012 -o tb_alu \
-      #       02-alu/tb/tb_alu.sv \
-      #       02-alu/rtl/alu.sv \
-      #     && vvp tb_alu

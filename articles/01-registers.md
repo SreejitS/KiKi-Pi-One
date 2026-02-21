@@ -1,11 +1,16 @@
 ---
-title: "Part 1: The Register - Building KiKi-Pi-One's Memory Cells"
-series: "KiKi-Pi-One"
+medium_url: ''
 part: 1
-tags: ["cpu-design", "hardware", "systemverilog", "registers", "kiki-pi-one"]
-medium_url: ""
-wordpress_url: ""
-status: draft
+series: KiKi-Pi-One
+status: ready
+tags:
+- cpu-design
+- hardware
+- systemverilog
+- registers
+- kiki-pi-one
+title: 'Part 1: The Register - Building KiKi-Pi-One''s Memory Cells'
+wordpress_url: ''
 ---
 
 # Part 1: The Register

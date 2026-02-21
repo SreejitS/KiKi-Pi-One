@@ -18,9 +18,9 @@ const components = [
   {
     part: "02",
     name: "ALU",
-    href: null,
+    href: "/alu",
     description: "Arithmetic Logic Unit — 28 operations from 6 control bits.",
-    status: "coming",
+    status: "live",
   },
   {
     part: "03",
