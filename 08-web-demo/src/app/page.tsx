@@ -25,9 +25,9 @@ const components = [
   {
     part: "03",
     name: "Data Memory",
-    href: null,
+    href: "/memory",
     description: "16K words of read/write RAM with memory-mapped I/O.",
-    status: "coming",
+    status: "live",
   },
   {
     part: "04",

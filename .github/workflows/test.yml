@@ -31,4 +31,11 @@ jobs:
             02-alu/rtl/alu.sv \
           && vvp tb_alu
 
+      - name: Run memory testbench
+        run: |
+          iverilog -g2012 -o tb_memory \
+            03-memory/tb/tb_memory.sv \
+            03-memory/rtl/memory.sv \
+          && vvp tb_memory
+
       # Add new testbench steps here as components are implemented:

@@ -15,6 +15,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             KiKi-Pi-One
           </a>
           <a href="/registers" className="text-slate-400 hover:text-slate-200">Registers</a>
+          <a href="/alu" className="text-slate-400 hover:text-slate-200">ALU</a>
+          <a href="/memory" className="text-slate-400 hover:text-slate-200">Memory</a>
           <a
             href="https://github.com/SreejitS/KiKi-Pi-One"
             target="_blank"
