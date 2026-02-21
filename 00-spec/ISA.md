@@ -29,15 +29,15 @@ All hardware components, the assembler, and the web simulator are derived from t
 
 KiKi-Pi-One is designed around three constraints:
 
-1. **Simplicity** — Every component must be explainable from first principles. No black boxes.
-2. **Completeness** — The architecture must be Turing-complete and capable of running real programs.
-3. **Teachability** — The ISA must be small enough to memorise but expressive enough to be interesting.
+1. **Simplicity**  -  Every component must be explainable from first principles. No black boxes.
+2. **Completeness**  -  The architecture must be Turing-complete and capable of running real programs.
+3. **Teachability**  -  The ISA must be small enough to memorise but expressive enough to be interesting.
 
 The result is a 16-bit von Neumann-inspired machine with:
 - **Two instructions** (A and C)
 - **Two general-purpose registers** (A and D)
 - **One implicit memory operand** (M = RAM[A])
-- **No floating point, no privilege levels, no interrupts** — just load, compute, jump
+- **No floating point, no privilege levels, no interrupts**  -  just load, compute, jump
 
 ---
 
@@ -49,8 +49,8 @@ The address space is **16-bit** (65,536 locations), split into three regions:
 Address Range       Region          Description
 ─────────────────────────────────────────────────────
 0x0000 – 0x3FFF    Data RAM        16,384 words of general-purpose read/write memory
-0x4000 – 0x5FFF    Screen Buffer   8,192 words — each bit maps to one pixel (256×512 px)
-0x6000             Keyboard        Single word — holds the ASCII code of the last key pressed
+0x4000 – 0x5FFF    Screen Buffer   8,192 words  -  each bit maps to one pixel (256×512 px)
+0x6000             Keyboard        Single word  -  holds the ASCII code of the last key pressed
 ```
 
 All memory locations hold **16-bit signed integers** (two's complement).
@@ -65,7 +65,7 @@ All memory locations hold **16-bit signed integers** (two's complement).
 |---|---|---|
 | **A** | 16-bit | Address register. Used to address RAM (`M = RAM[A]`) and hold 15-bit constants. Also feeds the ALU as a second operand. |
 | **D** | 16-bit | Data register. General-purpose compute register. Primary ALU input. |
-| **M** | implicit | Not a physical register — shorthand for `RAM[A]`. Reading M reads `RAM[A]`; writing M writes `RAM[A]`. |
+| **M** | implicit | Not a physical register  -  shorthand for `RAM[A]`. Reading M reads `RAM[A]`; writing M writes `RAM[A]`. |
 | **PC** | 16-bit | Program counter. Holds the address of the next instruction in ROM. Normally increments; conditionally loads on jump. |
 
 ---
@@ -176,12 +176,12 @@ The 6 control bits (`zx nx zy ny f no`) configure the operation:
 The 6 control bits apply transformations in sequence:
 
 ```
-1. zx  — if 1, zero out x (x = 0)
-2. nx  — if 1, bitwise NOT x
-3. zy  — if 1, zero out y (y = 0)
-4. ny  — if 1, bitwise NOT y
-5. f   — if 1, output = x + y (ADD); if 0, output = x & y (AND)
-6. no  — if 1, bitwise NOT the output
+1. zx   -  if 1, zero out x (x = 0)
+2. nx   -  if 1, bitwise NOT x
+3. zy   -  if 1, zero out y (y = 0)
+4. ny   -  if 1, bitwise NOT y
+5. f    -  if 1, output = x + y (ADD); if 0, output = x & y (AND)
+6. no   -  if 1, bitwise NOT the output
 ```
 
 Example: computing `D+1` (control bits `011111`):
@@ -324,4 +324,4 @@ M=D         // R2 = max
 
 ---
 
-*Next: [01-registers — The Register](../01-registers/README.md)*
+*Next: [01-registers  -  The Register](../01-registers/README.md)*

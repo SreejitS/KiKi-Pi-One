@@ -1,5 +1,5 @@
 ---
-title: "Part 1: The Register — Building KiKi-Pi-One's Memory Cells"
+title: "Part 1: The Register - Building KiKi-Pi-One's Memory Cells"
 series: "KiKi-Pi-One"
 part: 1
 tags: ["cpu-design", "hardware", "systemverilog", "registers", "kiki-pi-one"]
@@ -10,16 +10,16 @@ status: draft
 
 # Part 1: The Register
 
-*This is Part 1 of the KiKi-Pi-One series — building a 16-bit CPU from scratch.*
+*This is Part 1 of the KiKi-Pi-One series, where we build a 16-bit CPU from scratch.*
 *[← Part 0: The ISA](./00-isa-spec.md) | [GitHub](https://github.com/SreejitS/KiKi-Pi-One) | [Live Demo](https://kiki-pi-one.vercel.app/registers)*
 
 ---
 
-Every CPU needs memory. Not the gigabytes of RAM kind — I mean the tiny, fast storage sitting right inside the processor itself. The kind that holds a single value and can update it in one clock cycle.
+Every CPU needs memory. Not the gigabytes of RAM kind. I mean the tiny, fast storage sitting right inside the processor itself. The kind that holds a single value and can update it in one clock cycle.
 
 That's a **register**.
 
-In KiKi-Pi-One, registers are the first building block we'll implement. The CPU has two of them — the **A register** and the **D register** — and they're both instances of the same simple module we're building today.
+In KiKi-Pi-One, registers are the first building block we'll implement. The CPU has two of them, the **A register** and the **D register**, and they're both instances of the same simple module we're building today.
 
 ---
 
@@ -50,7 +50,7 @@ load │                         │
 
 - `in`: the 16-bit value we might want to store
 - `load`: 1 = latch `in`, 0 = keep holding current value
-- `clk`: the clock — this is what makes it *synchronous* (changes happen on the tick, not instantly)
+- `clk`: the clock, which is what makes it *synchronous* (changes happen on the tick, not instantly)
 - `out`: the currently stored value
 
 ---
@@ -89,7 +89,7 @@ This edge-triggered behaviour is what makes digital design predictable. All regi
 
 ## The Implementation
 
-Here's the complete SystemVerilog. It's short on purpose — if you need more than a few lines to implement a register, something is wrong.
+Here's the complete SystemVerilog. It's short on purpose. If you need more than a few lines to implement a register, something is wrong.
 
 ```systemverilog
 // register.sv
@@ -116,7 +116,7 @@ endmodule
 
 **`always_ff @(posedge clk)`** — This is the key. `always_ff` is a SystemVerilog construct that explicitly models a flip-flop (sequential logic). The `@(posedge clk)` means "trigger on the rising clock edge". Synthesis tools use this to infer actual flip-flop primitives.
 
-**`if (load) out <= in`** — The non-blocking assignment `<=` (vs. blocking `=`) is critical in sequential blocks. All non-blocking assignments evaluate their right-hand sides *first*, then update their targets simultaneously. This is how hardware actually works — all flip-flops in the chip update at the same instant on the clock edge.
+**`if (load) out <= in`** — The non-blocking assignment `<=` (vs. blocking `=`) is critical in sequential blocks. All non-blocking assignments evaluate their right-hand sides *first*, then update their targets simultaneously. This is how hardware actually works: all flip-flops in the chip update at the same instant on the clock edge.
 
 **`initial out = 16'h0000`** — Sets the simulation starting value to 0. In real hardware, flip-flops power up to an undefined state, but for simulation this gives us a clean baseline.
 
@@ -211,13 +211,13 @@ Green across the board. The register works exactly as specified.
 
 ---
 
-## Try It Yourself — Interactive Demo
+## Try It Yourself
 
 I built an interactive web demo where you can click individual bits, toggle the load signal, and step through clock cycles to watch the register hold and latch in real time.
 
 **→ [Open the Register Demo](https://kiki-pi-one.vercel.app/registers)**
 
-The demo runs the same logic as the SystemVerilog implementation — just written in TypeScript so it runs in your browser:
+The demo runs the same logic as the SystemVerilog implementation, just written in TypeScript so it runs in your browser:
 
 ```typescript
 // register.ts — mirrors register.sv exactly
@@ -242,10 +242,10 @@ register reg_A (.clk(clk), .load(load_A), .in(a_input), .out(A));
 register reg_D (.clk(clk), .load(load_D), .in(alu_out),  .out(D));
 ```
 
-- **Register A** — holds addresses and constants; feeds into the ALU as operand Y and into the PC as the jump target
-- **Register D** — general data register; primary ALU operand X
+- **Register A** holds addresses and constants, feeds into the ALU as operand Y, and doubles as the jump target for the PC
+- **Register D** is the general data register and the primary ALU operand X
 
-The `load` signal for each will be decoded from the instruction's destination bits — exactly the `ddd` field we defined in the ISA spec.
+The `load` signal for each is decoded from the instruction's destination bits, specifically the `ddd` field we defined in the ISA spec.
 
 ---
 
@@ -253,12 +253,12 @@ The `load` signal for each will be decoded from the instruction's destination bi
 
 We have storage. Now we need computation.
 
-In **Part 2**, we build the **ALU (Arithmetic Logic Unit)** — the component that does all the actual math. We'll see how 6 control bits can select between 28 different operations, and implement the trick behind the `D+1` operation that would look like magic without the explanation.
+In **Part 2**, we build the **ALU (Arithmetic Logic Unit)**, the component that does all the actual math. We'll see how 6 control bits can select between 28 different operations, and work through the trick behind the `D+1` operation that would look like magic without the explanation.
 
 **[Part 2: The ALU →](./02-alu.md)**
 
 ---
 
 *[← Part 0: The ISA](./00-isa-spec.md)*
-*[GitHub — KiKi-Pi-One](https://github.com/SreejitS/KiKi-Pi-One)*
+*[KiKi-Pi-One on GitHub](https://github.com/SreejitS/KiKi-Pi-One)*
 *[Live Demo](https://kiki-pi-one.vercel.app/registers)*

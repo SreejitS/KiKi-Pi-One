@@ -9,13 +9,13 @@ tags:
 - hardware
 - isa
 - kiki-pi-one
-title: 'Part 0: The Instruction Set Architecture — Designing KiKi-Pi-One''s ISA'
+title: 'Part 0: The Instruction Set Architecture - Designing KiKi-Pi-One''s ISA'
 wordpress_url: ''
 ---
 
 # Part 0: The Instruction Set Architecture
 
-*This is Part 0 of the KiKi-Pi-One series — building a 16-bit CPU from scratch.*
+*This is Part 0 of the KiKi-Pi-One series, where we build a 16-bit CPU from scratch.*
 *[GitHub](https://github.com/SreejitS/KiKi-Pi-One)*
 
 ---
@@ -24,7 +24,7 @@ Before writing a single line of hardware code, we need to answer one fundamental
 
 > **What instructions should our CPU understand?**
 
-This document is the answer. The Instruction Set Architecture (ISA) is the contract between the hardware and software sides of a computer. Every component we build — the ALU, the registers, the CPU, and the assembler — is derived from this spec. Get the ISA wrong, and everything downstream is wrong.
+This document is the answer. The Instruction Set Architecture (ISA) is the contract between the hardware and software sides of a computer. Every component we build (the ALU, the registers, the CPU, and the assembler) is derived from this spec. Get the ISA wrong, and everything downstream is wrong.
 
 Let's design it carefully.
 
@@ -32,11 +32,11 @@ Let's design it carefully.
 
 ## Why Design Your Own ISA?
 
-When most people think "CPU", they think x86 or ARM — architectures with hundreds of instructions, dozens of addressing modes, and 40 years of backwards compatibility baggage.
+When most people think "CPU", they think x86 or ARM: architectures with hundreds of instructions, dozens of addressing modes, and 40 years of backwards compatibility baggage.
 
 We're not doing that.
 
-KiKi-Pi-One uses a deliberately minimal ISA with exactly **two instruction types**. This isn't a limitation — it's a design choice. With just two instruction types, we can:
+KiKi-Pi-One uses a deliberately minimal ISA with exactly **two instruction types**. This isn't a limitation; it's a design choice. With just two instruction types, we can:
 
 - Understand every bit of every instruction
 - Build the hardware without a lookup table
@@ -83,8 +83,8 @@ In assembly, you write it with an `@` prefix:
 ```
 
 The A register is the workhorse of our architecture. It serves double duty:
-1. **As a data register** — holds a value that can be used by the ALU
-2. **As an address register** — its value tells the CPU where in RAM to read/write (`M = RAM[A]`)
+1. **As a data register**: holds a value that can be used by the ALU
+2. **As an address register**: its value tells the CPU where in RAM to read/write (`M = RAM[A]`)
 
 Any time you want to work with a memory address or a large constant, you first load it into A.
 
@@ -143,7 +143,7 @@ Here's the full operation table:
 | `D\|A` | `0 010101` | D OR A |
 | `D\|M` | `1 010101` | D OR M |
 
-28 operations from 6 bits. The trick is that the 6 control bits apply successive transformations to the inputs — zero it, negate it, add or AND, negate the output — and different combinations give you all 28 useful operations. We'll explore this in detail in Part 2 (the ALU article).
+28 operations from 6 bits. The trick is that the 6 control bits apply successive transformations to the inputs (zero it, negate it, add or AND, negate the output) and different combinations give you all 28 useful operations. We'll explore this in detail in Part 2 (the ALU article).
 
 ### The `dest` field (bits 5–3): where to store the result
 
@@ -236,16 +236,16 @@ KBD       → 24576
 Let's write a program that computes `R2 = R0 + R1` and annotate every bit:
 
 ```asm
-@R0       // 0 000 000 000 000 000  — A = 0 (address of R0)
-D=M       // 1 111 110 000 010 000  — D = RAM[0]
-@R1       // 0 000 000 000 000 001  — A = 1
-D=D+M     // 1 111 000 010 010 000  — D = D + RAM[1]
-@R2       // 0 000 000 000 000 010  — A = 2
-M=D       // 1 110 001 100 001 000  — RAM[2] = D
+@R0       // 0 000 000 000 000 000   → A = 0 (address of R0)
+D=M       // 1 111 110 000 010 000   → D = RAM[0]
+@R1       // 0 000 000 000 000 001   → A = 1
+D=D+M     // 1 111 000 010 010 000   → D = D + RAM[1]
+@R2       // 0 000 000 000 000 010   → A = 2
+M=D       // 1 110 001 100 001 000   → RAM[2] = D
 
 // Halt: infinite loop
-@6        // 0 000 000 000 000 110  — A = 6 (this line's ROM address)
-0;JMP     // 1 110 101 010 000 111  — jump to ROM[6] forever
+@6        // 0 000 000 000 000 110   → A = 6 (this line's ROM address)
+0;JMP     // 1 110 101 010 000 111   → jump to ROM[6] forever
 ```
 
 Eight instructions. No ambiguity. Every bit has a purpose.
@@ -270,11 +270,11 @@ The rest of the series is building the hardware that executes this spec.
 
 ## What's Next
 
-In **Part 1**, we build the most fundamental storage element: the **register**. It's a 16-bit memory cell with one job — hold a value until told to update it.
+In **Part 1**, we build the most fundamental storage element: the **register**. It's a 16-bit memory cell with one job: hold a value until told to update it.
 
 **[Part 1: The Register →](./01-registers.md)**
 
 ---
 
-*[GitHub — KiKi-Pi-One](https://github.com/SreejitS/KiKi-Pi-One)*
+*[KiKi-Pi-One on GitHub](https://github.com/SreejitS/KiKi-Pi-One)*
 *[Full ISA Reference](../00-spec/ISA.md)*

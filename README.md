@@ -1,6 +1,6 @@
 # KiKi-Pi-One
 
-A 16-bit CPU designed and built from scratch — hardware in SystemVerilog, simulated in the browser.
+A 16-bit CPU designed and built from scratch  -  hardware in SystemVerilog, simulated in the browser.
 
 [![Tests](https://github.com/SreejitS/KiKi-Pi-One/actions/workflows/test.yml/badge.svg)](https://github.com/SreejitS/KiKi-Pi-One/actions/workflows/test.yml)
 
@@ -37,14 +37,14 @@ graph TD
 
 | Part | Title | Code | Article | Demo |
 |---|---|---|---|---|
-| 0 | The ISA Specification | [00-spec/ISA.md](00-spec/ISA.md) | [Medium]() · [Blog]() | — |
+| 0 | The ISA Specification | [00-spec/ISA.md](00-spec/ISA.md) | [Medium]() · [Blog]() |  -  |
 | 1 | The Register | [01-registers/](01-registers/) | [Medium]() · [Blog]() | [Live Demo](https://kiki-pi-one.vercel.app/registers) |
-| 2 | The ALU | [02-alu/](02-alu/) | — | — |
-| 3 | Data Memory | [03-memory/](03-memory/) | — | — |
-| 4 | Program Counter | [04-pc/](04-pc/) | — | — |
-| 5 | The CPU | [05-cpu/](05-cpu/) | — | — |
-| 6 | The Computer | [06-computer/](06-computer/) | — | — |
-| 7 | The Assembler | [07-assembler/](07-assembler/) | — | — |
+| 2 | The ALU | [02-alu/](02-alu/) |  -  |  -  |
+| 3 | Data Memory | [03-memory/](03-memory/) |  -  |  -  |
+| 4 | Program Counter | [04-pc/](04-pc/) |  -  |  -  |
+| 5 | The CPU | [05-cpu/](05-cpu/) |  -  |  -  |
+| 6 | The Computer | [06-computer/](06-computer/) |  -  |  -  |
+| 7 | The Assembler | [07-assembler/](07-assembler/) |  -  |  -  |
 
 ---
 
@@ -52,7 +52,7 @@ graph TD
 
 ```
 kiki-pi-one/
-├── 00-spec/         ← ISA reference — the source of truth for everything
+├── 00-spec/         ← ISA reference  -  the source of truth for everything
 ├── 01-registers/    ← Register (rtl/, tb/, README.md)
 ├── 02-alu/          ← ALU
 ├── 03-memory/       ← Data Memory
@@ -63,7 +63,7 @@ kiki-pi-one/
 ├── 08-web-demo/     ← Next.js interactive simulator
 ├── logisim/         ← Original Logisim Evolution circuit (preserved)
 ├── articles/        ← Markdown article drafts (published to Medium + WordPress)
-└── tools/           ← publish.py — dual-publish articles
+└── tools/           ← publish.py  -  dual-publish articles
 ```
 
 ---
@@ -119,10 +119,10 @@ Full specification: [00-spec/ISA.md](00-spec/ISA.md)
 
 ## Inspiration
 
-- [Nand2Tetris](https://www.nand2tetris.org/) — the HACK architecture this is based on
+- [Nand2Tetris](https://www.nand2tetris.org/)  -  the HACK architecture this is based on
 - MIT 6.004 Computation Structures
-- Logisim Evolution — used for the original visual prototype
+- Logisim Evolution  -  used for the original visual prototype
 
 ## License
 
-MIT — see [LICENSE.md](LICENSE.md)
+MIT  -  see [LICENSE.md](LICENSE.md)
