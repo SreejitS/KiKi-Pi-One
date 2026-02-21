@@ -32,9 +32,9 @@ const components = [
   {
     part: "04",
     name: "Program Counter",
-    href: null,
+    href: "/pc",
     description: "Increment, load, or reset — drives instruction sequencing.",
-    status: "coming",
+    status: "live",
   },
   {
     part: "05",

@@ -38,4 +38,11 @@ jobs:
             03-memory/rtl/memory.sv \
           && vvp tb_memory
 
+      - name: Run PC testbench
+        run: |
+          iverilog -g2012 -o tb_pc \
+            04-pc/tb/tb_pc.sv \
+            04-pc/rtl/pc.sv \
+          && vvp tb_pc
+
       # Add new testbench steps here as components are implemented:
