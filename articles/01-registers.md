@@ -46,19 +46,6 @@ load |                         |
 
 The output does not change *when* you set `load = 1`. It changes on the **next rising clock edge**. This edge-triggered behaviour is what makes digital design predictable. All registers in the system update simultaneously on the clock edge, eliminating race conditions.
 
-```
-        +--+  +--+  +--+  +--+  +--+
-clk  ---+  +--+  +--+  +--+  +--+  +-
-         ^     ^     ^     ^     ^
-load  ----------------+     +--------
-                      +-----+
-
-in    ---- DEAD ------+ABCD +--- FFFF
-out   ---- 0000 ------+-----+ABCD ---
-                              ^
-                         latches here
-```
-
 ```json
 // WaveDrom - paste at wavedrom.com to render
 { "signal": [

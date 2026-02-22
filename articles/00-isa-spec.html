@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html><head><meta charset="utf-8"><title>Part 0: The Instruction Set Architecture - Designing KiKi-Pi-One's Language</title></head>
+<html><head><meta charset="utf-8"><title>Part 0: The Instruction Set Architecture - Designing KiKi-Pi-One's Language</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/monokai.min.css"></head>
 <body>
 <div id="kiki-article">
 <style>
@@ -145,7 +146,22 @@
     box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
     margin: 1rem 0 !important;
   }
+  /* ── WaveDrom timing diagrams ── */
+  #kiki-article .kiki-wavedrom {
+    text-align: center !important;
+    margin: 1.5rem 0 !important;
+    background: #fff !important;
+    padding: 1rem !important;
+    border-radius: 8px !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12) !important;
+    overflow-x: auto !important;
+  }
+  #kiki-article .kiki-wavedrom svg {
+    max-width: 100% !important;
+    height: auto !important;
+  }
 </style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/monokai.min.css">
 <p><em>This is Part 0 of the KiKi-Pi-One series, where we build a 16-bit CPU from scratch.</em>
 <em><a href="https://github.com/SreejitS/KiKi-Pi-One">GitHub</a></em></p>
 <p>Before writing a single line of hardware code, we need to answer one question: <strong>what instructions should our CPU understand?</strong></p>
@@ -166,7 +182,7 @@
 </code></pre>
 <p>Bit 15 is always 0. The remaining 15 bits hold any value from 0 to 32,767.</p>
 <p>In assembly, you write it with an <code>@</code> prefix:</p>
-<pre><code>@5       // loads 5 into A
+<pre><code class="language-asm">@5       // loads 5 into A
 @100     // loads 100 into A
 @SCREEN  // loads 16384 into A (predefined symbol)
 </code></pre>
@@ -487,7 +503,7 @@ KBD       -&gt; 24576
 </code></pre>
 <h2 id="a-real-program-adding-two-numbers">A Real Program: Adding Two Numbers</h2>
 <p>Let us write a program that computes <code>R2 = R0 + R1</code> and annotate every bit:</p>
-<pre><code>@R0       // 0 000 000 000 000 000   -&gt; A = 0 (address of R0)
+<pre><code class="language-asm">@R0       // 0 000 000 000 000 000   -&gt; A = 0 (address of R0)
 D=M       // 1 111 110 000 010 000   -&gt; D = RAM[0]
 @R1       // 0 000 000 000 000 001   -&gt; A = 1
 D=D+M     // 1 111 000 010 010 000   -&gt; D = D + RAM[1]
@@ -515,5 +531,8 @@ M=D       // 1 110 001 100 001 000   -&gt; RAM[2] = D
 <hr />
 <p><em><a href="https://github.com/SreejitS/KiKi-Pi-One">KiKi-Pi-One on GitHub</a></em>
 <em><a href="../00-spec/ISA.md">Full ISA Reference</a></em></p>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/verilog.min.js"></script>
+<script>hljs.highlightAll();</script>
 </div>
 </body></html>

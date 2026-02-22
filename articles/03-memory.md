@@ -48,19 +48,6 @@ The address is 15 bits wide, covering 32,768 locations. The ISA defines three re
 
 ## Timing Diagram
 
-```
-         +--+  +--+  +--+  +--+  +--+
-clk   ---+  +--+  +--+  +--+  +--+  +-
-          ^     ^     ^     ^     ^
-load  ----------------+     +---------
-                      +-----+
-addr  ---- 0005 ------+ 0005+----- 0005
-in    ---- CAFE ------+ CAFE+----- DEAD
-out   ---- 0000 ------+-----+CAFE ----
-                              ^
-                         latches here
-```
-
 ```json
 // WaveDrom - paste at wavedrom.com
 { "signal": [
